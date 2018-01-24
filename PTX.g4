@@ -58,7 +58,7 @@ labelName
 ;
 
 performDirective
-: '.maxnreg' Digit | '.maxntid' Digit (',' Digit)* | '.reqntid' Digit (',' Digit)* | '.minnctapersm' Digit |'.maxnctapersm' Digit |'.pragma'  '"' nameString '"'
+: '.maxnreg' digit | '.maxntid' digit (',' digit)* | '.reqntid' digit (',' digit)* | '.minnctapersm' digit |'.maxnctapersm' digit |'.pragma'  '"' nameString '"'
 ;
 
 debugDirective
@@ -126,15 +126,15 @@ instruction
 :  '//' nameString
 | nameString ':' 
 | declaration
-| guardPred? opcode operand? (',' operand)* ';'
+| GuardPred? opcode operand? (',' operand)* ';'
 ;
 
 declaration
-: stateSpace alignment? type variableInit ';'
+: StateSpace alignment? type variableInit ';'
 ;
 
 alignment
-: '.align' Digit
+: '.align' digit
 ;
 
 variableInit
@@ -147,12 +147,12 @@ variable
 
 initialVal
 : '{' initialVal '}'
-| initialVal (',' initialVal)*
-| Digit (',' Digit)*
+| ',' initialVal
+| digit (',' digit)*
 ;
 
 registerVal
-: '%' nameString '<'? Digit? '>'?
+: '%' nameString '<'? digit? '>'?
 ;
 
 vectorVal
@@ -160,10 +160,10 @@ vectorVal
 ;
 
 arrayVal
-: nameString ('[' Digit? ']')*
+: nameString ('[' digit? ']')*
 ;
 
-guardPred
+GuardPred
 : '@' '!'? ('p' | 'q' | 'r' | 's')
 ;
 
@@ -180,7 +180,7 @@ vectorOperand
 ;
 
 registerVariable
-: '%' regString Digit?
+: '%' regString digit?
 ;
 
 regString
@@ -191,35 +191,35 @@ addressExpression
 : registerVariable
 | HexadecimalLiteral
 | nameString
-| addressExpression '+' Digit
+| addressExpression '+' digit
 ;
 
 opcode
 : nameString ('.' nameString)*
 ;
 
-stateSpace
+StateSpace
 : '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
 ;
 
 type
-: signedInt | unsignedInt | floatingPoint | bits | predicate
+: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate
 | '.v2' type | '.v4' type
 ;
 
-signedInt
+SignedInt
 : '.s8' | '.s16' | '.s32' | '.s64'
 ;
-unsignedInt
+UnsignedInt
 : '.u8' | '.u16' | '.u32' | '.u64'
 ;
-floatingPoint
+FloatingPoint
 : '.f16' | '.f16x2' | '.f32' | '.f64'
 ;
-bits
+Bits
 : '.b8' | '.b16' | '.b32' | '.b64'
 ;
-predicate
+Predicate
 : '.pred'
 ;
 
@@ -245,7 +245,7 @@ nameString
 : (Decdigit | cchar)+
 ;
 
-Digit
+digit
 : Hexdigit+ | Decdigit+ | Octdigit+ | Bidigit+
 ;
 
@@ -254,11 +254,10 @@ Decdigit : [0-9];
 Octdigit : [0-7];
 Bidigit : [01];
 
-Nondigit : [a-zA-z];
+Nondigit : [a-zA-Z];
 
 Priop : '(' | ')';
 Unaryop : '+' | '-' | '!' | '~';
-Castop : '.u64' | '.s64';
 Binaryop : '*' | '/' | '%'
 	  | '+' | '-'  | '>>' | '<<'
 	  | '<' | '>' | '<=' | '>='
@@ -266,35 +265,32 @@ Binaryop : '*' | '/' | '%'
 	  | '&' | '^' | '|' | '&&' | '||' ;
 Ternaryop : '?:';
 
+cchar
+: Nondigit | symbol
+;
+
+symbol
+: Priop | Unaryop | Binaryop | Grave | Atsign | Crosshatch | Dollarsign | Underscore | Equalsign | Commasign | Dotsign | Questionmark | Colonsign | Semicolonsign | Quotation | Lbracket | Rbracket | Lbrace | Rbrace | Backslash | Apostrophe
+;
+
+Grave : '`' ;
+Atsign : '@' ;
+Crosshatch : '#' ;
+Dollarsign : '$' ;
+Underscore : '_' ;
+Equalsign : '=' ;
+Commasign : ',' ;
+Dotsign : '.' ;
+Questionmark : '?' ;
+Colonsign : ':' ;
+Semicolonsign : ';' ;
+Quotation : '"' ;
+Lbracket : '[' ;
+Rbracket : ']' ;
+Lbrace : '{';
+Rbrace : '}';
+Backslash : '\\';
+Apostrophe : '\'';
+
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
-
-cchar
-: Nondigit | ssymbol
-;
-
-ssymbol
-: Priop | Unaryop | Binaryop | grave | atsign | crosshatch | dollarsign | underscore | equalsign | commasign | dotsign | backslash | questionmark | colonsign | semicolonsign | apostrophe | quotation | lbracket | rbracket | lbrace | rbrace
-;
-
-grave : '`' ;
-atsign : '@' ;
-crosshatch : '#' ;
-dollarsign : '$' ;
-underscore : '_' ;
-equalsign : '=' ;
-commasign : ',' ;
-dotsign : '.' ;
-backslash : '\'? ;
-questionmark : '?' ;
-colonsign : ':' ;
-semicolonsign : ';' ;
-apostrophe : ''' ;
-quotation : '"' ;
-lbracket : '[' ;
-rbracket : ']' ;
-lbrace : '{';
-rbrace : '}';
-
-Followsym: [a-zA-Z0-9_$];
-Identifier: [a-zA-Z] Followsym* | [_$%] Followsym+;
