@@ -3,13 +3,21 @@
 grammar PTX;
 
 program
-: modDirective? directiveList?
+: modDirectiveList? directiveList?
+;
+
+modDirectiveList
+: modDirective+
 ;
 
 modDirective
-: '.version' Decdigit '.' Decdigit
+: '.version' versionNumber
 | '.target' targetSpecifiersList
 | '.address_size' '32' | '.address_size' '64'
+;
+
+versionNumber
+: DECDIGIT Dotsign DECDIGIT
 ;
 
 targetSpecifiersList
@@ -44,7 +52,7 @@ kernelDirective
 ;
 
 functionDirective
-: '.func' ('(' param ')')? nameString (paramList)? statementList
+: '.func' ( '(' param ')' )? nameString (paramList)? statementList
 ;
 
 controlDirective
@@ -54,7 +62,7 @@ controlDirective
 ;
 
 labelName
-: nameString
+: identifier
 ;
 
 performDirective
@@ -73,9 +81,9 @@ dwarfDebug
 ;
 
 dwarfStringList
-: '.byte' Hexdigit (',' Hexdigit)*
-| '.4byte' Hexdigit (',' Hexdigit)*
-| '.quad' Hexdigit (',' Hexdigit)*
+: '.byte' HEXDIGIT (',' HEXDIGIT)*
+| '.4byte' HEXDIGIT (',' HEXDIGIT)*
+| '.quad' HEXDIGIT (',' HEXDIGIT)*
 | '4byte' nameString
 | 'quad' nameString
 ;
@@ -85,21 +93,21 @@ sectionDebug
 ;
 
 dwarfLines
-: '.b8' Hexdigit (',' Hexdigit)*
-| '.b32' Hexdigit (',' Hexdigit)*
-| '.b64' Hexdigit (',' Hexdigit)*
+: '.b8' HEXDIGIT (',' HEXDIGIT)*
+| '.b32' HEXDIGIT (',' HEXDIGIT)*
+| '.b64' HEXDIGIT (',' HEXDIGIT)*
 | '.b32' nameString
 | '.b64' nameString
-| '.b32' nameString '+' Hexdigit (',' Hexdigit)*
-| '.b64' nameString '+' Hexdigit (',' Hexdigit)*
+| '.b32' nameString '+' HEXDIGIT (',' HEXDIGIT)*
+| '.b64' nameString '+' HEXDIGIT (',' HEXDIGIT)*
 ;
 
 fileDebug
-: '.file' Hexdigit '"' nameString '"' (',' Hexdigit ',' Hexdigit)?
+: '.file' HEXDIGIT '"' nameString '"' (',' HEXDIGIT ',' HEXDIGIT)?
 ;
 
 locDebug
-: '.loc' Hexdigit Hexdigit Hexdigit
+: '.loc' HEXDIGIT HEXDIGIT HEXDIGIT
 ;
 
 linkingDirective
@@ -111,7 +119,7 @@ paramList
 ;
 
 param
-: '.param' type nameString
+: '.param' type identifier
 ;
 
 statementList
@@ -123,8 +131,7 @@ instructionList
 ;
 
 instruction
-:  '//' nameString
-| nameString ':' 
+: nameString ':' 
 | declaration
 | GuardPred? opcode operand? (',' operand)* ';'
 ;
@@ -203,23 +210,23 @@ StateSpace
 ;
 
 type
-: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate
+: signedInt | unsignedInt | floatingPoint | bits | predicate
 | '.v2' type | '.v4' type
 ;
 
-SignedInt
+signedInt
 : '.s8' | '.s16' | '.s32' | '.s64'
 ;
-UnsignedInt
+unsignedInt
 : '.u8' | '.u16' | '.u32' | '.u64'
 ;
-FloatingPoint
+floatingPoint
 : '.f16' | '.f16x2' | '.f32' | '.f64'
 ;
-Bits
+bits
 : '.b8' | '.b16' | '.b32' | '.b64'
 ;
-Predicate
+predicate
 : '.pred'
 ;
 
@@ -234,27 +241,41 @@ constantExpression
 | FloatConst
 ;
 
-HexadecimalLiteral : Unaryop? '0' [xX] Hexdigit+ 'U'?;
-OctalLiteral : Unaryop? '0' Octdigit+ 'U'?;	
-BinaryLiteral : Unaryop? '0' [bB] Hexdigit+ 'U'?;
-DecimalLiteral : Unaryop? [1-9] Decdigit* 'U'?;
+HexadecimalLiteral : Unaryop? '0' [xX] HEXDIGIT+ 'U'?;
+OctalLiteral : Unaryop? '0' OCTDIGIT+ 'U'?;	
+BinaryLiteral : Unaryop? '0' [bB] HEXDIGIT+ 'U'?;
+DecimalLiteral : Unaryop? [1-9] DECDIGIT* 'U'?;
 
-FloatConst: '0' [fFdD] Hexdigit+;
+FloatConst: '0' [fFdD] HEXDIGIT+;
 
 nameString
-: (Decdigit | cchar)+
+: (DECDIGIT | cchar)+
+;
+
+cchar
+: NONDIGIT | symbol
+;
+
+symbol
+: Priop | Unaryop | Binaryop | Grave | Atsign | Crosshatch | Dollarsign | Underscore | Equalsign | Commasign | Dotsign | Questionmark | Colonsign | Semicolonsign | Quotation | Lbracket | Rbracket | Lbrace | Rbrace | Backslash | Apostrophe
+;
+
+fragment FOLLOWSYM: [a-zA-Z0-9_$];
+identifier
+: NONDIGIT FOLLOWSYM* 
+| (Underscore | Dollarsign | '%') FOLLOWSYM+
 ;
 
 digit
-: Hexdigit+ | Decdigit+ | Octdigit+ | Bidigit+
+: HEXDIGIT+ | DECDIGIT+ | OCTDIGIT+ | BIDIGIT+
 ;
 
-Hexdigit : [0-9a-fA-F];
-Decdigit : [0-9];
-Octdigit : [0-7];
-Bidigit : [01];
+fragment BIDIGIT : [01];
+fragment OCTDIGIT : [0-7];
+fragment DECDIGIT : [0-9];
+fragment HEXDIGIT : [0-9a-fA-F];
 
-Nondigit : [a-zA-Z];
+fragment NONDIGIT : [a-zA-Z];
 
 Priop : '(' | ')';
 Unaryop : '+' | '-' | '!' | '~';
@@ -264,14 +285,6 @@ Binaryop : '*' | '/' | '%'
 	  | '==' | '!='
 	  | '&' | '^' | '|' | '&&' | '||' ;
 Ternaryop : '?:';
-
-cchar
-: Nondigit | symbol
-;
-
-symbol
-: Priop | Unaryop | Binaryop | Grave | Atsign | Crosshatch | Dollarsign | Underscore | Equalsign | Commasign | Dotsign | Questionmark | Colonsign | Semicolonsign | Quotation | Lbracket | Rbracket | Lbrace | Rbrace | Backslash | Apostrophe
-;
 
 Grave : '`' ;
 Atsign : '@' ;
@@ -294,3 +307,4 @@ Apostrophe : '\'';
 
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
+LineComment : '//' ~[\r\n]* -> skip;
