@@ -145,7 +145,11 @@ paramList
 ;
 
 param
-: '.param' Type identifier
+: Paramtype identifier
+;
+
+Paramtype
+: PARAM Type
 ;
 
 statementList
@@ -229,16 +233,11 @@ vectorOperand
 ;
 
 registerVariable
-: Regexpression
+: Percentsign identifier Registernum?
 ;
 
-Regexpression
-: '%' RegString Digits?
-;
-
-fragment
-RegString
-: (NONDIGIT | Symbol)+
+Registernum
+: Digits
 ;
 
 addressExpression
@@ -361,7 +360,7 @@ GuardPred
 
 fragment
 StateSpace
-: '.reg' | '.sreg' | '.const' | '.global' | '.local' | '.param' | 'ld' '.param' | 'st' '.param' | '.shared' | '.tex'
+: '.reg' | '.sreg' | '.const' | '.global' | '.local' | PARAM | 'ld' PARAM | 'st' PARAM | '.shared' | '.tex'
 ;
 
 Type
@@ -389,6 +388,11 @@ Bits
 fragment
 Predicate
 : '.pred'
+;
+
+fragment
+PARAM
+: '.param'
 ;
 
 WhiteSpace : [ \t]+ -> skip;
