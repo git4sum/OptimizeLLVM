@@ -50,7 +50,7 @@ directive
 controlDirective
 : labelName ':' '.branchtargets' labelName+ ';'
 | labelName ':' '.calltargets' identifier ';'
-| labelName ':' '.callprototype' ('(' param ')')? '_' ('(' paramList ')')? ';'
+| labelName ':' '.callprototype' ('(' param ')')? '_' paramList? ';'
 ;
 
 labelName
@@ -129,11 +129,11 @@ Locindex
 ;
 
 kernelDirective
-: '.entry' identifier performDirective* ( '(' paramList ')' )? '{' statementList '}'
+: '.entry' identifier performDirective* paramList? '{' statementList '}'
 ;
 
 functionDirective
-: '.func' ( '(' param ')' )? identifier (paramList)? '{' statementList '}'
+: '.func' ( '(' param ')' )? identifier paramList? '{' statementList '}'
 ;
 
 linkingDirective
@@ -157,7 +157,11 @@ declarationList
 ;
 
 declaration
-: StateSpace Alignment? Type variableInit ';'
+: variableInit ';'
+;
+
+Decltype
+: StateSpace Alignment? Type
 ;
 
 instructionList
@@ -174,7 +178,7 @@ Alignment
 ;
 
 variableInit
-: variable '=' initialVal
+: variable ('=' initialVal)?
 ;
 
 variable
@@ -277,11 +281,6 @@ VersionNum
 : Digits+ Dotsign Digits+
 ;
 
-fragment
-Type
-: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate | '.v2' Type | '.v4' Type
-;
-
 IntegerLiteral
 : Unaryop? DecimalLiteral
 | Unaryop? OctalLiteral
@@ -316,13 +315,11 @@ Hexdigits
 : HEXDIGIT+
 ;
 
-//fragment Bidigit : [01];
-//fragment Octdigit : [0-7];
-fragment
-DIGIT : [0-9]
-;
 fragment
 HEXDIGIT : DIGIT | [a-fA-F]
+;
+fragment
+DIGIT : [0-9]
 ;
 fragment
 NONDIGIT : [a-zA-Z_]
@@ -362,22 +359,34 @@ GuardPred
 : '@' '!'? ('p' | 'q' | 'r' | 's')
 ;
 
+fragment
 StateSpace
-: '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
+: '.reg' | '.sreg' | '.const' | '.global' | '.local' | '.param' | 'ld' '.param' | 'st' '.param' | '.shared' | '.tex'
 ;
 
+Type
+: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate 
+| '.v2' SignedInt | '.v2' UnsignedInt | '.v2' FloatingPoint | '.v2' Bits | '.v2' Predicate
+| '.v4' SignedInt | '.v4' UnsignedInt | '.v4' FloatingPoint | '.v4' Bits | '.v4' Predicate 
+;
+
+fragment
 SignedInt
 : '.s8' | '.s16' | '.s32' | '.s64'
 ;
+fragment
 UnsignedInt
 : '.u8' | '.u16' | '.u32' | '.u64'
 ;
+fragment
 FloatingPoint
 : '.f16' | '.f16x2' | '.f32' | '.f64'
 ;
+fragment
 Bits
 : '.b8' | '.b16' | '.b32' | '.b64'
 ;
+fragment
 Predicate
 : '.pred'
 ;
