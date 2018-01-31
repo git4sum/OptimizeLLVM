@@ -17,7 +17,7 @@ modDirective
 ;
 
 versionNumber
-: DECDIGIT Dotsign DECDIGIT
+: VersionNum
 ;
 
 targetSpecifiersList
@@ -47,17 +47,9 @@ directive
 | debugDirective
 ;
 
-kernelDirective
-: '.entry' nameString performDirective* ( '(' paramList ')' )? statementList
-;
-
-functionDirective
-: '.func' ( '(' param ')' )? nameString (paramList)? statementList
-;
-
 controlDirective
 : labelName ':' '.branchtargets' labelName+ ';'
-| labelName ':' '.calltargets' nameString+ ';'
+| labelName ':' '.calltargets' identifier ';'
 | labelName ':' '.callprototype' ('(' param ')')? '_' ('(' paramList ')')? ';'
 ;
 
@@ -66,7 +58,12 @@ labelName
 ;
 
 performDirective
-: '.maxnreg' digit | '.maxntid' digit (',' digit)* | '.reqntid' digit (',' digit)* | '.minnctapersm' digit |'.maxnctapersm' digit |'.pragma'  '"' nameString '"'
+: PerformanceDirectives
+| '.pragma'  '"' identifier '"' ';'
+;
+
+PerformanceDirectives
+: '.maxnreg' Digits | '.maxntid' Digits (',' Digits)* | '.reqntid' Digits (',' Digits)* | '.minnctapersm' Digits |'.maxnctapersm' Digits
 ;
 
 debugDirective
@@ -81,33 +78,62 @@ dwarfDebug
 ;
 
 dwarfStringList
-: '.byte' HEXDIGIT (',' HEXDIGIT)*
-| '.4byte' HEXDIGIT (',' HEXDIGIT)*
-| '.quad' HEXDIGIT (',' HEXDIGIT)*
-| '4byte' nameString
-| 'quad' nameString
+: DwarfStrings
+| '4byte' identifier
+| 'quad' identifier
+;
+
+DwarfStrings
+: '.byte' Hexdigits (',' Hexdigits)*
+| '.4byte' Hexdigits (',' Hexdigits)*
+| '.quad' Hexdigits (',' Hexdigits)*
+
 ;
 
 sectionDebug
-: '.section' nameString '{' dwarfLines '}'
+: '.section' identifier '{' dwarfLine '}'
 ;
 
-dwarfLines
-: '.b8' HEXDIGIT (',' HEXDIGIT)*
-| '.b32' HEXDIGIT (',' HEXDIGIT)*
-| '.b64' HEXDIGIT (',' HEXDIGIT)*
-| '.b32' nameString
-| '.b64' nameString
-| '.b32' nameString '+' HEXDIGIT (',' HEXDIGIT)*
-| '.b64' nameString '+' HEXDIGIT (',' HEXDIGIT)*
+dwarfLine
+: '.b8' Hexlists
+| '.b32' Hexlists
+| '.b64' Hexlists
+| '.b32' identifier
+| '.b64' identifier
+| '.b32' identifier '+' Hexlists
+| '.b64' identifier '+' Hexlists
+;
+
+Hexlists
+: Hexdigits (',' Hexdigits)*
 ;
 
 fileDebug
-: '.file' HEXDIGIT '"' nameString '"' (',' HEXDIGIT ',' HEXDIGIT)?
+: Fileindex '"' identifier '"' Fileoption?
+;
+
+Fileindex
+: '.file' Digits
+;
+
+Fileoption
+: ',' Hexdigits ',' Digits
 ;
 
 locDebug
-: '.loc' HEXDIGIT HEXDIGIT HEXDIGIT
+: '.loc' Locindex
+;
+
+Locindex
+: Digits Digits Digits
+;
+
+kernelDirective
+: '.entry' identifier performDirective* ( '(' paramList ')' )? '{' statementList '}'
+;
+
+functionDirective
+: '.func' ( '(' param ')' )? identifier (paramList)? '{' statementList '}'
 ;
 
 linkingDirective
@@ -123,7 +149,15 @@ param
 ;
 
 statementList
-: '{' instructionList? '}'
+: declarationList instructionList
+;
+
+declarationList
+: declaration+
+;
+
+declaration
+: StateSpace Alignment? type variableInit ';'
 ;
 
 instructionList
@@ -131,17 +165,12 @@ instructionList
 ;
 
 instruction
-: nameString ':' 
-| declaration
+: labelName ':' 
 | GuardPred? opcode operand? (',' operand)* ';'
 ;
 
-declaration
-: StateSpace alignment? type variableInit ';'
-;
-
-alignment
-: '.align' digit
+Alignment
+: '.align' Digits
 ;
 
 variableInit
@@ -155,23 +184,32 @@ variable
 initialVal
 : '{' initialVal '}'
 | ',' initialVal
-| digit (',' digit)*
+| Digitlists
+;
+
+
+Digitlists
+: Digits (',' Digits)*
 ;
 
 registerVal
-: '%' nameString '<'? digit? '>'?
+: '%' identifier RegisterIndex?
+;
+
+RegisterIndex
+: '<' Digits? '>'
 ;
 
 vectorVal
-: nameString
+: identifier
 ;
 
 arrayVal
-: nameString ('[' digit? ']')*
+: identifier ArrayIndex*
 ;
 
-GuardPred
-: '@' '!'? ('p' | 'q' | 'r' | 's')
+ArrayIndex
+: '[' Digits? ']'
 ;
 
 operand
@@ -183,108 +221,147 @@ operand
 ;
 
 vectorOperand
-: '{' nameString (',' nameString)* '}'
+: '{' identifier (',' identifier)* '}'
 ;
 
 registerVariable
-: '%' regString digit?
+: Regexpression
 ;
 
-regString
-: cchar+
+Regexpression
+: '%' RegString Digits?
+;
+
+fragment
+RegString
+: (NONDIGIT | Symbol)+
 ;
 
 addressExpression
 : registerVariable
-| HexadecimalLiteral
-| nameString
-| addressExpression '+' digit
+| IntegerLiteral
+| identifier
+| addressExpression AddrOffset
+;
+
+AddrOffset
+: '+' Digits
 ;
 
 opcode
-: nameString ('.' nameString)*
-;
-
-StateSpace
-: '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
-;
-
-type
-: signedInt | unsignedInt | floatingPoint | bits | predicate
-| '.v2' type | '.v4' type
-;
-
-signedInt
-: '.s8' | '.s16' | '.s32' | '.s64'
-;
-unsignedInt
-: '.u8' | '.u16' | '.u32' | '.u64'
-;
-floatingPoint
-: '.f16' | '.f16x2' | '.f32' | '.f64'
-;
-bits
-: '.b8' | '.b16' | '.b32' | '.b64'
-;
-predicate
-: '.pred'
+: identifier ('.' identifier)*
 ;
 
 constantExpression
 : constantExpression Binaryop constantExpression
 | Unaryop constantExpression
 | '(' constantExpression ')'
-| HexadecimalLiteral
-| OctalLiteral
-| BinaryLiteral
-| DecimalLiteral
-| FloatConst
+| IntegerLiteral
+| FloatLiteral
 ;
 
-HexadecimalLiteral : Unaryop? '0' [xX] HEXDIGIT+ 'U'?;
-OctalLiteral : Unaryop? '0' OCTDIGIT+ 'U'?;	
-BinaryLiteral : Unaryop? '0' [bB] HEXDIGIT+ 'U'?;
-DecimalLiteral : Unaryop? [1-9] DECDIGIT* 'U'?;
-
-FloatConst: '0' [fFdD] HEXDIGIT+;
-
-nameString
-: (DECDIGIT | cchar)+
+fragment
+Followsym: [a-zA-Z0-9_$]
 ;
 
-cchar
-: NONDIGIT | symbol
+identifier
+: IdentifierString
 ;
 
-symbol
+IdentifierString
+: NONDIGIT Followsym*
+| ( Dollarsign | Percentsign) Followsym+
+;
+
+VersionNum
+: Digits+ Dotsign Digits+
+;
+
+GuardPred
+: '@' '!'? ('p' | 'q' | 'r' | 's')
+;
+
+StateSpace
+: '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
+;
+
+SignedInt
+: '.s8' | '.s16' | '.s32' | '.s64'
+;
+UnsignedInt
+: '.u8' | '.u16' | '.u32' | '.u64'
+;
+FloatingPoint
+: '.f16' | '.f16x2' | '.f32' | '.f64'
+;
+Bits
+: '.b8' | '.b16' | '.b32' | '.b64'
+;
+Predicate
+: '.pred'
+;
+
+type
+: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate
+| '.v2' type | '.v4' type
+;
+
+IntegerLiteral
+: Unaryop? DecimalLiteral
+| Unaryop? OctalLiteral
+| Unaryop? HexadecimalLiteral
+| Unaryop? BinaryLiteral
+;
+
+FloatLiteral
+: Unaryop? FloatConst
+;
+
+fragment HexadecimalLiteral : '0' [xX] Hexdigits+ 'U'?;
+fragment OctalLiteral : '0' [0-7]+ 'U'?;	
+fragment BinaryLiteral : '0' [bB] [01]+ 'U'?;
+fragment DecimalLiteral : [1-9] Digits* 'U'?;
+
+fragment FloatConst: '0' [fFdD] Hexdigits+;
+
+
+fragment
+Symbol
 : Priop | Unaryop | Binaryop | Grave | Atsign | Crosshatch | Dollarsign | Underscore | Equalsign | Commasign | Dotsign | Questionmark | Colonsign | Semicolonsign | Quotation | Lbracket | Rbracket | Lbrace | Rbrace | Backslash | Apostrophe
 ;
 
-fragment FOLLOWSYM: [a-zA-Z0-9_$];
-identifier
-: NONDIGIT FOLLOWSYM* 
-| (Underscore | Dollarsign | '%') FOLLOWSYM+
+fragment
+Digits
+: DIGIT+
 ;
 
-digit
-: HEXDIGIT+ | DECDIGIT+ | OCTDIGIT+ | BIDIGIT+
+fragment
+Hexdigits
+: HEXDIGIT+
 ;
 
-fragment BIDIGIT : [01];
-fragment OCTDIGIT : [0-7];
-fragment DECDIGIT : [0-9];
-fragment HEXDIGIT : [0-9a-fA-F];
-
-fragment NONDIGIT : [a-zA-Z];
+//fragment Bidigit : [01];
+//fragment Octdigit : [0-7];
+fragment
+DIGIT : [0-9]
+;
+fragment
+HEXDIGIT : DIGIT | [a-fA-F]
+;
+fragment
+NONDIGIT : [a-zA-Z_]
+;
 
 Priop : '(' | ')';
 Unaryop : '+' | '-' | '!' | '~';
-Binaryop : '*' | '/' | '%'
+Binaryop : '*' | '/' | Percentsign
 	  | '+' | '-'  | '>>' | '<<'
 	  | '<' | '>' | '<=' | '>='
 	  | '==' | '!='
 	  | '&' | '^' | '|' | '&&' | '||' ;
 Ternaryop : '?:';
+
+Percentsign : '%' ;
 
 Grave : '`' ;
 Atsign : '@' ;
@@ -308,3 +385,5 @@ Apostrophe : '\'';
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
 LineComment : '//' ~[\r\n]* -> skip;
+
+//nameString: .+ ;
