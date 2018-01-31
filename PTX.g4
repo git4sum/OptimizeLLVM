@@ -145,7 +145,7 @@ paramList
 ;
 
 param
-: '.param' type identifier
+: '.param' Type identifier
 ;
 
 statementList
@@ -157,7 +157,7 @@ declarationList
 ;
 
 declaration
-: StateSpace Alignment? type variableInit ';'
+: StateSpace Alignment? Type variableInit ';'
 ;
 
 instructionList
@@ -277,33 +277,9 @@ VersionNum
 : Digits+ Dotsign Digits+
 ;
 
-GuardPred
-: '@' '!'? ('p' | 'q' | 'r' | 's')
-;
-
-StateSpace
-: '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
-;
-
-SignedInt
-: '.s8' | '.s16' | '.s32' | '.s64'
-;
-UnsignedInt
-: '.u8' | '.u16' | '.u32' | '.u64'
-;
-FloatingPoint
-: '.f16' | '.f16x2' | '.f32' | '.f64'
-;
-Bits
-: '.b8' | '.b16' | '.b32' | '.b64'
-;
-Predicate
-: '.pred'
-;
-
-type
-: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate
-| '.v2' type | '.v4' type
+fragment
+Type
+: SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate | '.v2' Type | '.v4' Type
 ;
 
 IntegerLiteral
@@ -381,6 +357,30 @@ Lbrace : '{';
 Rbrace : '}';
 Backslash : '\\';
 Apostrophe : '\'';
+
+GuardPred
+: '@' '!'? ('p' | 'q' | 'r' | 's')
+;
+
+StateSpace
+: '.reg' | '.sreg' | '.const' | '.global' | '.local' | ('ld')? '.param' | ('st')? '.param' | '.shared' | '.tex'
+;
+
+SignedInt
+: '.s8' | '.s16' | '.s32' | '.s64'
+;
+UnsignedInt
+: '.u8' | '.u16' | '.u32' | '.u64'
+;
+FloatingPoint
+: '.f16' | '.f16x2' | '.f32' | '.f64'
+;
+Bits
+: '.b8' | '.b16' | '.b32' | '.b64'
+;
+Predicate
+: '.pred'
+;
 
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
