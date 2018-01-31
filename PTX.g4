@@ -21,10 +21,11 @@ versionNumber
 ;
 
 targetSpecifiersList
-: targetSpecifier (',' targetSpecifier)*
+: TargetSpecifier (',' TargetSpecifier)*
 ;
 
-targetSpecifier
+fragment
+TargetSpecifier
 : 'sm_60' | 'sm_61' 
 | 'sm_50' | 'sm_52' | 'sm_53' |
 | 'sm_30' | 'sm_32' | 'sm_35' | 'sm_37' 
@@ -40,8 +41,8 @@ directiveList
 ;
 
 directive
-: linkingDirective? kernelDirective
-| linkingDirective? functionDirective
+: LinkingDirective? kernelDirective
+| LinkingDirective? functionDirective
 | controlDirective
 | performDirective
 | debugDirective
@@ -95,13 +96,13 @@ sectionDebug
 ;
 
 dwarfLine
-: '.b8' Hexlists
-| '.b32' Hexlists
-| '.b64' Hexlists
-| '.b32' identifier
-| '.b64' identifier
-| '.b32' identifier '+' Hexlists
-| '.b64' identifier '+' Hexlists
+: Dwarftype Hexlists
+| Dwarftype identifier
+| Dwarftype identifier '+' Hexlists
+;
+
+Dwarftype
+: Bits
 ;
 
 Hexlists
@@ -129,14 +130,14 @@ Locindex
 ;
 
 kernelDirective
-: '.entry' identifier performDirective* paramList? '{' statementList '}'
+: '.entry' identifier performDirective* paramList? ('{' statementList '}')?
 ;
 
 functionDirective
-: '.func' ( '(' param ')' )? identifier paramList? '{' statementList '}'
+: '.func' ('(' param ')')? identifier paramList? ('{' statementList '}')?
 ;
 
-linkingDirective
+LinkingDirective
 : '.extern' | '.visible' | '.weak'
 ;
 
@@ -145,12 +146,16 @@ paramList
 ;
 
 param
-: Paramtype identifier
+: Paramfront type identifier
 ;
 
-Paramtype
-: PARAM Type
+Paramfront
+: PARAM 
 ;
+
+//Paramtype
+//: type
+//;
 
 statementList
 : declarationList instructionList
@@ -161,12 +166,16 @@ declarationList
 ;
 
 declaration
-: variableInit ';'
+: Decfront type variableInit ';'
 ;
 
-Decltype
-: StateSpace Alignment? Type
+Decfront
+: StateSpace Alignment? 
 ;
+
+//Dectype
+//: type
+//;
 
 instructionList
 : instruction+
@@ -233,7 +242,7 @@ vectorOperand
 ;
 
 registerVariable
-: Percentsign identifier Registernum?
+: '%' identifier Registernum?
 ;
 
 Registernum
@@ -273,11 +282,11 @@ identifier
 
 IdentifierString
 : NONDIGIT Followsym*
-| ( Dollarsign | Percentsign) Followsym+
+| ('$' | '%') Followsym+
 ;
 
 VersionNum
-: Digits+ Dotsign Digits+
+: Digits+ '.' Digits+
 ;
 
 IntegerLiteral
@@ -297,12 +306,6 @@ fragment BinaryLiteral : '0' [bB] [01]+ 'U'?;
 fragment DecimalLiteral : [1-9] Digits* 'U'?;
 
 fragment FloatConst: '0' [fFdD] Hexdigits+;
-
-
-fragment
-Symbol
-: Priop | Unaryop | Binaryop | Grave | Atsign | Crosshatch | Dollarsign | Underscore | Equalsign | Commasign | Dotsign | Questionmark | Colonsign | Semicolonsign | Quotation | Lbracket | Rbracket | Lbrace | Rbrace | Backslash | Apostrophe
-;
 
 fragment
 Digits
@@ -326,77 +329,102 @@ NONDIGIT : [a-zA-Z_]
 
 Priop : '(' | ')';
 Unaryop : '+' | '-' | '!' | '~';
-Binaryop : '*' | '/' | Percentsign
+Binaryop : '*' | '/' | '%'
 	  | '+' | '-'  | '>>' | '<<'
 	  | '<' | '>' | '<=' | '>='
 	  | '==' | '!='
 	  | '&' | '^' | '|' | '&&' | '||' ;
-Ternaryop : '?:';
-
-Percentsign : '%' ;
-
-Grave : '`' ;
-Atsign : '@' ;
-Crosshatch : '#' ;
-Dollarsign : '$' ;
-Underscore : '_' ;
-Equalsign : '=' ;
-Commasign : ',' ;
-Dotsign : '.' ;
-Questionmark : '?' ;
-Colonsign : ':' ;
-Semicolonsign : ';' ;
-Quotation : '"' ;
-Lbracket : '[' ;
-Rbracket : ']' ;
-Lbrace : '{';
-Rbrace : '}';
-Backslash : '\\';
-Apostrophe : '\'';
+//Ternaryop : '?:';
 
 GuardPred
 : '@' '!'? ('p' | 'q' | 'r' | 's')
 ;
 
-fragment
 StateSpace
-: '.reg' | '.sreg' | '.const' | '.global' | '.local' | PARAM | 'ld' PARAM | 'st' PARAM | '.shared' | '.tex'
+: REG | SREG | CONST | GLOBAL | LOCAL | PARAM | LDPARAM | STPARAM | SHARED | TEX
 ;
 
-Type
+fragment REG : '.reg' ;
+fragment SREG : '.sreg' ;
+fragment CONST : '.const' ;
+fragment GLOBAL : '.global' ;
+fragment LOCAL : '.local' ;
+fragment PARAM : '.param' ;
+fragment LDPARAM : '.ld.param';
+fragment STPARAM : '.st.param' ;
+fragment SHARED : '.shared' ;
+fragment TEX : '.tex' ;
+
+type
+: Types
+;
+
+Types
+//: SIGN8 | SIGN16 | SIGN32 | SIGN64 | UNSIGN8 | UNSIGN16 | UNSIGN32 | UNSIGN64 | FLOAT16 | FLOAT16X | FLOAT32 | FLOAT64 | BITS8 | BITS16 | BITS32 | BITS64
 : SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate 
-| '.v2' SignedInt | '.v2' UnsignedInt | '.v2' FloatingPoint | '.v2' Bits | '.v2' Predicate
-| '.v4' SignedInt | '.v4' UnsignedInt | '.v4' FloatingPoint | '.v4' Bits | '.v4' Predicate 
+//| VECTOR2 SignedInt | VECTOR2 UnsignedInt | VECTOR2 FloatingPoint | VECTOR2 Bits | VECTOR2 Predicate
+//| VECTOR4 SignedInt | VECTOR4 UnsignedInt | VECTOR4 FloatingPoint | VECTOR4 Bits | VECTOR4 Predicate 
 ;
 
-fragment
+//fragment
 SignedInt
-: '.s8' | '.s16' | '.s32' | '.s64'
+: SIGN8 | SIGN16 | SIGN32 | SIGN64
 ;
-fragment
+//fragment
 UnsignedInt
-: '.u8' | '.u16' | '.u32' | '.u64'
+: UNSIGN8 | UNSIGN16 | UNSIGN32 | UNSIGN64
 ;
-fragment
+//fragment
 FloatingPoint
-: '.f16' | '.f16x2' | '.f32' | '.f64'
+: FLOAT16 | FLOAT16X | FLOAT32 | FLOAT64
 ;
-fragment
+//fragment
 Bits
-: '.b8' | '.b16' | '.b32' | '.b64'
+: BITS8 | BITS16 | BITS32 | BITS64
 ;
-fragment
+//fragment
 Predicate
 : '.pred'
 ;
 
-fragment
-PARAM
-: '.param'
-;
+fragment 
+SIGN8 :'.s8' ;
+fragment 
+SIGN16 : '.s16' ;
+fragment 
+SIGN32 : '.s32' ;
+fragment 
+SIGN64 : '.s64' ;
+fragment 
+UNSIGN8 :'.u8' ;
+fragment 
+UNSIGN16 : '.u16' ;
+fragment 
+UNSIGN32 : '.u32' ;
+fragment 
+UNSIGN64 : '.u64' ;
+fragment 
+FLOAT16 :'.f16' ;
+fragment 
+FLOAT16X : '.f16x2' ;
+fragment 
+FLOAT32 : '.f32' ;
+fragment 
+FLOAT64 : '.f64' ;
+fragment 
+BITS8 :'.b8' ;
+fragment 
+BITS16 : '.b16' ;
+fragment 
+BITS32 : '.b32' ;
+fragment 
+BITS64 : '.b64' ;
+fragment 
+VECTOR2 : '.v2' ;
+fragment 
+VECTOR4 : '.v4' ;
+
 
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
 LineComment : '//' ~[\r\n]* -> skip;
-
-//nameString: .+ ;
