@@ -99,9 +99,13 @@ sectionDebug
 ;
 
 dwarfLine
-: dwarftype Hexlists
+: dwarftype hexlists
 | dwarftype identifier
-| dwarftype identifier '+' Hexlists
+| dwarftype identifier '+' hexlists
+;
+
+hexlists
+: Hexdigits (',' Hexdigits)*
 ;
 
 dwarftype
@@ -121,11 +125,7 @@ Fileoption
 ;
 
 locDebug
-: '.loc' Locindex
-;
-
-Locindex
-: Digits Digits Digits
+: '.loc' Digits Digits Digits
 ;
 
 kernelDirective
@@ -145,11 +145,7 @@ paramList
 ;
 
 param
-: Paramfront type identifier
-;
-
-Paramfront
-: PARAM 
+: StateSpace type identifier
 ;
 
 statementList
@@ -161,11 +157,7 @@ declarationList
 ;
 
 declaration
-: Decfront type variableInit ';'
-;
-
-Decfront
-: StateSpace Alignment? 
+: StateSpace Alignment?  type variableInit ';'
 ;
 
 instructionList
@@ -192,7 +184,11 @@ variable
 initialVal
 : '{' initialVal '}'
 | ',' initialVal
-| Digitlists
+| digitlists
+;
+
+digitlists
+: Digits (',' Digits)*
 ;
 
 regvecVal
@@ -247,7 +243,7 @@ opcode
 ;
 
 oplist
-: '.' IdentifierString | Types | StateSpace
+: Types | StateSpace | Opsequence
 ;
 
 constantExpression
@@ -259,7 +255,7 @@ constantExpression
 ;
 
 integerLiteral
-: Unaryop? DecimalLiteral
+: Unaryop? decimalLiteral
 | Unaryop? OctalLiteral
 | Unaryop? HexadecimalLiteral
 | Unaryop? BinaryLiteral
@@ -269,10 +265,10 @@ floatLiteral
 : Unaryop? FloatConst
 ;
 
-HexadecimalLiteral : '0' [xX] Hexdigits+ 'U'?;
-OctalLiteral : '0' [0-7]+ 'U'?;	
-BinaryLiteral : '0' [bB] [01]+ 'U'?;
-DecimalLiteral : [1-9] Digits* 'U'?;
+HexadecimalLiteral : '0' [xX] Hexdigits+ 'U'? ;
+OctalLiteral : '0' [0-7]+ 'U'? ;
+BinaryLiteral : '0' [bB] [01]+ 'U'? ;
+decimalLiteral : Digits | Decliteral ;
 
 FloatConst: '0' [fFdD] Hexdigits+;
 
@@ -301,11 +297,11 @@ Binaryop : '*' | '/' | '%'
 //Ternaryop : '?:';
 
 GuardPred
-: '@' '!'? ('p' | 'q' | 'r' | 's')
+: '@' '!'? IdentifierString
 ;
 
 StateSpace
-: REG | SREG | CONST | GLOBAL | LOCAL | Paramfront | LDPARAM | STPARAM | SHARED | TEX
+: REG | SREG | CONST | GLOBAL | LOCAL | PARAM | SHARED | TEX
 ;
 
 fragment REG : '.reg' ;
@@ -314,8 +310,6 @@ fragment CONST : '.const' ;
 fragment GLOBAL : '.global' ;
 fragment LOCAL : '.local' ;
 fragment PARAM : '.param' ;
-fragment LDPARAM : '.ld.param';
-fragment STPARAM : '.st.param' ;
 fragment SHARED : '.shared' ;
 fragment TEX : '.tex' ;
 
@@ -408,18 +402,18 @@ Digits
 : DIGIT+
 ;
 
+Decliteral
+: [1-9] Digits* 'U'?
+;
+
 Hexdigits
 : HEXDIGIT+
 ;
 
-Digitlists
-: Digits (',' Digits)*
-;
 
-Hexlists
-: Hexdigits (',' Hexdigits)*
+Opsequence
+: '.' IdentifierString
 ;
-
 
 WhiteSpace : [ \t]+ -> skip;
 Newline : ( '\r' '\n'? | '\n' ) -> skip;
