@@ -3,7 +3,7 @@
 grammar PTX;
 
 program
-: modDirectiveList? directiveList?
+: modDirectiveList directiveList?
 ;
 
 modDirectiveList
@@ -11,29 +11,32 @@ modDirectiveList
 ;
 
 modDirective
-: '.version' versionNumber
-| '.target' targetSpecifiersList
-| '.address_size' '32' | '.address_size' '64'
+: VERSION VersionNum
+| TARGET TargetSpecifier (',' TargetSpecifier)*
+| ADDRSIZE Digits
 ;
 
-versionNumber
-: VersionNum
+VersionmodDirective
+: VERSION VersionNum
 ;
 
-targetSpecifiersList
-: TargetSpecifier (',' TargetSpecifier)*
+VersionNum
+: Digits+ '.' Digits+
 ;
 
-fragment
+TargetmodDirective
+: TARGET TargetSpecifier (',' TargetSpecifier)*
+;
+
+AddrmodDirective
+: ADDRSIZE Digits
+;
+
 TargetSpecifier
-: 'sm_60' | 'sm_61' 
-| 'sm_50' | 'sm_52' | 'sm_53' |
-| 'sm_30' | 'sm_32' | 'sm_35' | 'sm_37' 
-| 'sm_20' 
-| 'sm_10' | 'sm_11' | 'sm_12' | 'sm_13' 
-| 'texmode_unified' | 'texmode_independent' 
-| 'debug' 
-| 'map_f64_to_f32'
+: SM60 | SM61 | SM50 | SM52 | SM53 | SM30 | SM32 | SM35 | SM37 | SM20 | SM10 | SM11 | SM12 | SM13
+| TEXTMODEUNIT | TEXTMODEINDEP
+| DEBUG
+| MAP64TO32
 ;
 
 directiveList
@@ -96,17 +99,13 @@ sectionDebug
 ;
 
 dwarfLine
-: Dwarftype Hexlists
-| Dwarftype identifier
-| Dwarftype identifier '+' Hexlists
+: dwarftype Hexlists
+| dwarftype identifier
+| dwarftype identifier '+' Hexlists
 ;
 
-Dwarftype
+dwarftype
 : Bits
-;
-
-Hexlists
-: Hexdigits (',' Hexdigits)*
 ;
 
 fileDebug
@@ -153,10 +152,6 @@ Paramfront
 : PARAM 
 ;
 
-//Paramtype
-//: type
-//;
-
 statementList
 : declarationList instructionList
 ;
@@ -172,10 +167,6 @@ declaration
 Decfront
 : StateSpace Alignment? 
 ;
-
-//Dectype
-//: type
-//;
 
 instructionList
 : instruction+
@@ -195,7 +186,7 @@ variableInit
 ;
 
 variable
-: registerVal | vectorVal | arrayVal
+: regvecVal | arrayVal
 ;
 
 initialVal
@@ -204,21 +195,12 @@ initialVal
 | Digitlists
 ;
 
-
-Digitlists
-: Digits (',' Digits)*
-;
-
-registerVal
-: '%' identifier RegisterIndex?
+regvecVal
+: identifier RegisterIndex?
 ;
 
 RegisterIndex
 : '<' Digits? '>'
-;
-
-vectorVal
-: identifier
 ;
 
 arrayVal
@@ -242,16 +224,16 @@ vectorOperand
 ;
 
 registerVariable
-: '%' identifier Registernum?
+: '%' identifier registernum?
 ;
 
-Registernum
+registernum
 : Digits
 ;
 
 addressExpression
 : registerVariable
-| IntegerLiteral
+| integerLiteral
 | identifier
 | addressExpression AddrOffset
 ;
@@ -261,70 +243,52 @@ AddrOffset
 ;
 
 opcode
-: identifier ('.' identifier)*
+: identifier oplist*
+;
+
+oplist
+: '.' IdentifierString | Types | StateSpace
 ;
 
 constantExpression
 : constantExpression Binaryop constantExpression
 | Unaryop constantExpression
 | '(' constantExpression ')'
-| IntegerLiteral
-| FloatLiteral
+| integerLiteral
+| floatLiteral
 ;
 
-fragment
-Followsym: [a-zA-Z0-9_$]
-;
-
-identifier
-: IdentifierString
-;
-
-IdentifierString
-: NONDIGIT Followsym*
-| ('$' | '%') Followsym+
-;
-
-VersionNum
-: Digits+ '.' Digits+
-;
-
-IntegerLiteral
+integerLiteral
 : Unaryop? DecimalLiteral
 | Unaryop? OctalLiteral
 | Unaryop? HexadecimalLiteral
 | Unaryop? BinaryLiteral
 ;
 
-FloatLiteral
+floatLiteral
 : Unaryop? FloatConst
 ;
 
-fragment HexadecimalLiteral : '0' [xX] Hexdigits+ 'U'?;
-fragment OctalLiteral : '0' [0-7]+ 'U'?;	
-fragment BinaryLiteral : '0' [bB] [01]+ 'U'?;
-fragment DecimalLiteral : [1-9] Digits* 'U'?;
+HexadecimalLiteral : '0' [xX] Hexdigits+ 'U'?;
+OctalLiteral : '0' [0-7]+ 'U'?;	
+BinaryLiteral : '0' [bB] [01]+ 'U'?;
+DecimalLiteral : [1-9] Digits* 'U'?;
 
-fragment FloatConst: '0' [fFdD] Hexdigits+;
-
-fragment
-Digits
-: DIGIT+
-;
+FloatConst: '0' [fFdD] Hexdigits+;
 
 fragment
-Hexdigits
-: HEXDIGIT+
-;
-
-fragment
-HEXDIGIT : DIGIT | [a-fA-F]
+NONDIGIT : [a-zA-Z_]
 ;
 fragment
 DIGIT : [0-9]
 ;
+
 fragment
-NONDIGIT : [a-zA-Z_]
+Followsym: [a-zA-Z0-9_$]
+;
+
+fragment
+HEXDIGIT : DIGIT | [a-fA-F]
 ;
 
 Priop : '(' | ')';
@@ -341,7 +305,7 @@ GuardPred
 ;
 
 StateSpace
-: REG | SREG | CONST | GLOBAL | LOCAL | PARAM | LDPARAM | STPARAM | SHARED | TEX
+: REG | SREG | CONST | GLOBAL | LOCAL | Paramfront | LDPARAM | STPARAM | SHARED | TEX
 ;
 
 fragment REG : '.reg' ;
@@ -360,69 +324,101 @@ type
 ;
 
 Types
-//: SIGN8 | SIGN16 | SIGN32 | SIGN64 | UNSIGN8 | UNSIGN16 | UNSIGN32 | UNSIGN64 | FLOAT16 | FLOAT16X | FLOAT32 | FLOAT64 | BITS8 | BITS16 | BITS32 | BITS64
 : SignedInt | UnsignedInt | FloatingPoint | Bits | Predicate 
-//| VECTOR2 SignedInt | VECTOR2 UnsignedInt | VECTOR2 FloatingPoint | VECTOR2 Bits | VECTOR2 Predicate
-//| VECTOR4 SignedInt | VECTOR4 UnsignedInt | VECTOR4 FloatingPoint | VECTOR4 Bits | VECTOR4 Predicate 
 ;
 
-//fragment
 SignedInt
 : SIGN8 | SIGN16 | SIGN32 | SIGN64
+| VECTOR2 SIGN8 | VECTOR2 SIGN16 | VECTOR2 SIGN32 | VECTOR2 SIGN64
+| VECTOR4 SIGN8 | VECTOR4 SIGN16 | VECTOR4 SIGN32 | VECTOR4 SIGN64
 ;
-//fragment
 UnsignedInt
 : UNSIGN8 | UNSIGN16 | UNSIGN32 | UNSIGN64
+| VECTOR2 UNSIGN8 | VECTOR2 UNSIGN16 | VECTOR2 UNSIGN32 | VECTOR2 UNSIGN64
+| VECTOR4 UNSIGN8 | VECTOR4 UNSIGN16 | VECTOR4 UNSIGN32 | VECTOR4 UNSIGN64
 ;
-//fragment
 FloatingPoint
 : FLOAT16 | FLOAT16X | FLOAT32 | FLOAT64
+| VECTOR2 FLOAT16 | VECTOR2 FLOAT16X | VECTOR2 FLOAT32 | VECTOR2 FLOAT64
+| VECTOR4 FLOAT16 | VECTOR4 FLOAT16X | VECTOR4 FLOAT32 | VECTOR4 FLOAT64
 ;
-//fragment
 Bits
 : BITS8 | BITS16 | BITS32 | BITS64
+| VECTOR2 BITS8 | VECTOR2 BITS16 | VECTOR2 BITS32 | VECTOR2 BITS64
+| VECTOR4 BITS8 | VECTOR4 BITS16 | VECTOR4 BITS32 | VECTOR4 BITS64
 ;
-//fragment
 Predicate
 : '.pred'
 ;
 
-fragment 
-SIGN8 :'.s8' ;
-fragment 
-SIGN16 : '.s16' ;
-fragment 
-SIGN32 : '.s32' ;
-fragment 
-SIGN64 : '.s64' ;
-fragment 
-UNSIGN8 :'.u8' ;
-fragment 
-UNSIGN16 : '.u16' ;
-fragment 
-UNSIGN32 : '.u32' ;
-fragment 
-UNSIGN64 : '.u64' ;
-fragment 
-FLOAT16 :'.f16' ;
-fragment 
-FLOAT16X : '.f16x2' ;
-fragment 
-FLOAT32 : '.f32' ;
-fragment 
-FLOAT64 : '.f64' ;
-fragment 
-BITS8 :'.b8' ;
-fragment 
-BITS16 : '.b16' ;
-fragment 
-BITS32 : '.b32' ;
-fragment 
-BITS64 : '.b64' ;
-fragment 
-VECTOR2 : '.v2' ;
-fragment 
-VECTOR4 : '.v4' ;
+fragment SIGN8 :'.s8' ;
+fragment SIGN16 : '.s16' ;
+fragment SIGN32 : '.s32' ;
+fragment SIGN64 : '.s64' ;
+fragment UNSIGN8 :'.u8' ;
+fragment UNSIGN16 : '.u16' ;
+fragment UNSIGN32 : '.u32' ;
+fragment UNSIGN64 : '.u64' ;
+fragment FLOAT16 :'.f16' ;
+fragment FLOAT16X : '.f16x2' ;
+fragment FLOAT32 : '.f32' ;
+fragment FLOAT64 : '.f64' ;
+fragment BITS8 :'.b8' ;
+fragment BITS16 : '.b16' ;
+fragment BITS32 : '.b32' ;
+fragment BITS64 : '.b64' ;
+fragment VECTOR2 : '.v2' ;
+fragment VECTOR4 : '.v4' ;
+
+
+SM60 : 'sm_60' ;
+SM61 : 'sm_61' ;
+SM50 : 'sm_50' ;
+SM52 : 'sm_52' ;
+SM53 : 'sm_53' ;
+SM30 : 'sm_30' ;
+SM32 : 'sm_32' ;
+SM35 : 'sm_35' ;
+SM37 : 'sm_37' ;
+SM20 : 'sm_20' ;
+SM10 : 'sm_10' ;
+SM11 : 'sm_11' ;
+SM12 : 'sm_12' ;
+SM13 : 'sm_13' ;
+TEXTMODEUNIT : 'texmode_unified' ;
+TEXTMODEINDEP : 'texmode_independent' ;
+DEBUG : 'debug' ;
+MAP64TO32 : 'map_f64_to_f32' ;
+
+VERSION : '.version' ;
+TARGET : '.target' ;
+ADDRSIZE : '.address_size' ;
+
+
+identifier
+: IdentifierString
+;
+
+IdentifierString
+: NONDIGIT Followsym*
+| ('$' | '%') Followsym+
+;
+
+Digits
+: DIGIT+
+;
+
+Hexdigits
+: HEXDIGIT+
+;
+
+Digitlists
+: Digits (',' Digits)*
+;
+
+Hexlists
+: Hexdigits (',' Hexdigits)*
+;
 
 
 WhiteSpace : [ \t]+ -> skip;
