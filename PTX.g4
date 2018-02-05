@@ -16,20 +16,8 @@ modDirective
 | ADDRSIZE Digits
 ;
 
-VersionmodDirective
-: VERSION VersionNum
-;
-
 VersionNum
 : Digits+ '.' Digits+
-;
-
-TargetmodDirective
-: TARGET TargetSpecifier (',' TargetSpecifier)*
-;
-
-AddrmodDirective
-: ADDRSIZE Digits
 ;
 
 TargetSpecifier
@@ -157,7 +145,7 @@ declarationList
 ;
 
 declaration
-: StateSpace Alignment?  type variableInit ';'
+: StateSpace (ALIGN Digits)? type variableInit ';'
 ;
 
 instructionList
@@ -166,11 +154,7 @@ instructionList
 
 instruction
 : labelName ':' 
-| GuardPred? opcode operand? (',' operand)* ';'
-;
-
-Alignment
-: '.align' Digits
+| GuardPred? opcode operand? ';'
 ;
 
 variableInit
@@ -208,15 +192,17 @@ ArrayIndex
 ;
 
 operand
-: registerVariable
+: '(' operand ')'
+| operand ',' operand
+| registerVariable
 | constantExpression
 | '[' addressExpression ']'
 | labelName
-| vectorOperand
+| '{'? vectorOperand (',' vectorOperand)* '}'?
 ;
 
 vectorOperand
-: '{' identifier (',' identifier)* '}'
+: IdentifierString VectorOperands?
 ;
 
 registerVariable
@@ -388,6 +374,12 @@ VERSION : '.version' ;
 TARGET : '.target' ;
 ADDRSIZE : '.address_size' ;
 
+ALIGN : '.align' ;
+
+VectorOperands
+: '.x' | '.y' | '.z' | '.w'
+| '.r' | '.g' | '.b' | '.a'
+;
 
 identifier
 : IdentifierString
