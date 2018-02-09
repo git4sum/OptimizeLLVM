@@ -89,7 +89,7 @@ sectionDebug
 dwarfLine
 : dwarftype hexlists
 | dwarftype identifier
-| dwarftype identifier '+' hexlists
+| dwarftype identifier Unaryop hexlists
 ;
 
 hexlists
@@ -217,11 +217,11 @@ addressExpression
 : registerVariable
 | integerLiteral
 | identifier
-| addressExpression AddrOffset
+| addressExpression addrOffset
 ;
 
-AddrOffset
-: '+' Digits
+addrOffset
+: Unaryop+ Digits
 ;
 
 opcode
@@ -234,6 +234,7 @@ oplist
 
 constantExpression
 : constantExpression Binaryop constantExpression
+| constantExpression Unaryop constantExpression
 | Unaryop constantExpression
 | '(' constantExpression ')'
 | integerLiteral
