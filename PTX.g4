@@ -36,6 +36,7 @@ directive
 | LinkingDirective? functionDirective
 | controlDirective
 | debugDirective
+| declarationList
 ;
 
 
@@ -154,8 +155,7 @@ instructionList
 ;
 
 instruction
-: '{' instruction '}'
-| instruction instruction
+: '{' instruction+ '}'
 | labelName ':' 
 | GuardPred? opcode operandList? ';'
 ;
@@ -201,12 +201,18 @@ operandList
 operand
 : '(' operand ')'
 | Unaryop operand
+| operand Unaryop operand
+| operand Binaryop operand
 | operand Opsequence
 | registerVariable
 | constantExpression
-| '[' addressExpression ']'
+| '[' addressExpressionList ']'
 | labelName
-| '{'? vectorOperand (',' vectorOperand)* '}'?
+| vectorExpression
+;
+
+vectorExpression
+: '{'? vectorOperand (',' vectorOperand)* '}'?
 ;
 
 vectorOperand
@@ -221,11 +227,16 @@ registernum
 : Digits
 ;
 
+addressExpressionList
+: addressExpression (',' addressExpression)*
+;
+
 addressExpression
 : registerVariable
 | integerLiteral
 | identifier
 | addressExpression addrOffset
+| vectorExpression
 ;
 
 addrOffset
