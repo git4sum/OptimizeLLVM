@@ -35,14 +35,14 @@ directive
 : LinkingDirective? kernelDirective
 | LinkingDirective? functionDirective
 | controlDirective
-| performDirective
 | debugDirective
 ;
 
+
 controlDirective
-: labelName ':' '.branchtargets' labelName+ ';'
-| labelName ':' '.calltargets' identifier ';'
-| labelName ':' '.callprototype' ('(' param ')')? '_' paramList? ';'
+: labelName ':' BRANCHTARGETS labelName+ ';'
+| labelName ':' CALLTARGETS identifier ';'
+| labelName ':' CALLPROTOTYPE ('(' param ')')? '_' paramList? ';'
 ;
 
 labelName
@@ -50,12 +50,13 @@ labelName
 ;
 
 performDirective
-: PerformanceDirectives
-| '.pragma'  '"' identifier '"' ';'
+: MAXNREG Digits | MAXNTID Digits (',' Digits)* | REQNTID Digits (',' Digits)* | MINNCTAPERSM Digits | MAXNCTAPERSM Digits
+| PRAGMA '"' identifier '"' ';'
 ;
 
+
 PerformanceDirectives
-: '.maxnreg' Digits | '.maxntid' Digits (',' Digits)* | '.reqntid' Digits (',' Digits)* | '.minnctapersm' Digits |'.maxnctapersm' Digits
+: MAXNREG Digits | MAXNTID Digits (',' Digits)* | REQNTID Digits (',' Digits)* | MINNCTAPERSM Digits | MAXNCTAPERSM Digits
 ;
 
 debugDirective
@@ -66,24 +67,24 @@ debugDirective
 ;
 
 dwarfDebug
-: '@@DWARF' dwarfStringList
+: DWARF dwarfStringList
 ;
 
 dwarfStringList
 : DwarfStrings
-| '4byte' identifier
-| 'quad' identifier
+| FOURBYTE identifier
+| QUAD identifier
 ;
 
-DwarfStrings
-: '.byte' Hexdigits (',' Hexdigits)*
-| '.4byte' Hexdigits (',' Hexdigits)*
-| '.quad' Hexdigits (',' Hexdigits)*
 
+DwarfStrings
+: BYTE Hexdigits (',' Hexdigits)*
+| FOURBYTE Hexdigits (',' Hexdigits)*
+| QUAD Hexdigits (',' Hexdigits)*
 ;
 
 sectionDebug
-: '.section' identifier '{' dwarfLine '}'
+: SECTION identifier '{' dwarfLine '}'
 ;
 
 dwarfLine
@@ -105,7 +106,7 @@ fileDebug
 ;
 
 Fileindex
-: '.file' Digits
+: FILE Digits
 ;
 
 Fileoption
@@ -113,15 +114,15 @@ Fileoption
 ;
 
 locDebug
-: '.loc' Digits Digits Digits
+: LOC Digits Digits Digits
 ;
 
 kernelDirective
-: '.entry' identifier performDirective* paramList? ('{' statementList '}')?
+: ENTRY identifier paramList? performDirective* ('{' statementList '}')?
 ;
 
 functionDirective
-: '.func' ('(' param ')')? identifier paramList? ('{' statementList '}')?
+: FUNC ('(' param ')')? identifier paramList? performDirective* ('{' statementList '}')?
 ;
 
 LinkingDirective
@@ -376,6 +377,29 @@ TARGET : '.target' ;
 ADDRSIZE : '.address_size' ;
 
 ALIGN : '.align' ;
+
+PRAGMA : '.pragma' ;
+MAXNREG : '.maxnreg' ;
+MAXNTID : '.maxntid' ;
+REQNTID : '.reqntid' ;
+MINNCTAPERSM : '.minnctapersm' ;
+MAXNCTAPERSM : '.maxnctapersm' ;
+
+BRANCHTARGETS : '.branchtargets' ;
+CALLTARGETS : '.calltargets' ;
+CALLPROTOTYPE : '.callprototype' ;
+
+DWARF : '@@DWARF' ;
+BYTE : '.byte' ;
+FOURBYTE : '.4byte' ;
+QUAD : '.quad' ;
+
+SECTION : '.section' ;
+FILE : '.file' ;
+LOC : '.loc' ;
+
+ENTRY : '.entry' ;
+FUNC : '.func' ;
 
 VectorOperands
 : '.x' | '.y' | '.z' | '.w'
