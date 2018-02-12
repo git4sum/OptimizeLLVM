@@ -154,8 +154,10 @@ instructionList
 ;
 
 instruction
-: labelName ':' 
-| GuardPred? opcode operand? ';'
+: '{' instruction '}'
+| instruction instruction
+| labelName ':' 
+| GuardPred? opcode operandList? ';'
 ;
 
 variableInit
@@ -192,9 +194,14 @@ ArrayIndex
 : '[' Digits? ']'
 ;
 
+operandList
+: operand (',' operand)*
+;
+
 operand
 : '(' operand ')'
-| operand ',' operand
+| Unaryop operand
+| operand Opsequence
 | registerVariable
 | constantExpression
 | '[' addressExpression ']'
@@ -427,9 +434,13 @@ Hexdigits
 : HEXDIGIT+
 ;
 
-
 Opsequence
-: '.' IdentifierString
+: GeomOpsequence
+| '.' IdentifierString
+;
+
+GeomOpsequence
+: '.1d' | '.2d' | '.3d' | '.2dms'
 ;
 
 WhiteSpace : [ \t]+ -> skip;
