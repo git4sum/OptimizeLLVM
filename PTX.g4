@@ -28,7 +28,7 @@ TargetSpecifier
 ;
 
 directiveList
-: directive+
+: (declarationList | directive)+
 ;
 
 directive
@@ -148,6 +148,7 @@ declarationList
 
 declaration
 : StateSpace (ALIGN Digits)? type variableInit ';'
+| StateSpace TEXREF variableInit ';'
 ;
 
 instructionList
@@ -318,6 +319,8 @@ fragment LOCAL : '.local' ;
 fragment PARAM : '.param' ;
 fragment SHARED : '.shared' ;
 fragment TEX : '.tex' ;
+
+TEXREF : '.texref' ;
 
 type
 : Types
