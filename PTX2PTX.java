@@ -21,7 +21,9 @@ class PTX2PTXListener extends PTXBaseListener {
 
   @Override
   public void enterProgram(PTXParser.ProgramContext ctx){
-    System.out.println("Hi\n");
+  }
+  @Override 
+   public void visitTerminal(TerminalNode node){
   }
 }
 
