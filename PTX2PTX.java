@@ -96,6 +96,28 @@ class PTX2PTXListener extends PTXBaseListener {
 }
 
 public class PTX2PTX {
+
+   public static void printPTX(String inputPTX, String[] args) throws IOException {
+    // Get lexer
+    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX)); //**problem
+    //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
+    // Get a list of matched tokens
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    // Pass tokens to parser
+    PTXParser parser = new PTXParser(tokens);
+    // Walk parse-tree and attach our listener
+    ParseTreeWalker walker = new ParseTreeWalker();
+    PTX2PTXListener listener = new PTX2PTXListener(parser);
+    walker.walk(listener, parser.program());// walk from the root of parse tree
+
+    // Output file
+    FileOutputStream output = new FileOutputStream(new File("output_"+args[0]));
+    System.out.println("Output file name:  output_"+args[0]);
+    output.write(listener.out.peek().toString().getBytes());
+    output.flush();
+    output.close();
+  }
+
    public static void main(String[] args) throws IOException {
     String input="", tmp;
     if (args.length == 0) {
@@ -114,23 +136,15 @@ public class PTX2PTX {
         System.exit(1);
     }
 
-    // Get lexer
-    PTXLexer lexer = new PTXLexer(CharStreams.fromString(input)); //**problem
-    //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
-    // Get a list of matched tokens
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    // Pass tokens to parser
-    PTXParser parser = new PTXParser(tokens);
-    // Walk parse-tree and attach our listener
-    ParseTreeWalker walker = new ParseTreeWalker();
-    PTX2PTXListener listener = new PTX2PTXListener(parser);
-    walker.walk(listener, parser.program());// walk from the root of parse tree
+    printPTX(input, args);
 
-    // Output file
-    FileOutputStream output = new FileOutputStream(new File("output_"+args[0]));
-    System.out.println("Output file name:  output_"+args[0]);
-    output.write(listener.out.peek().toString().getBytes());
-    output.flush();
-    output.close();
   }
 }
+/*
+antlr4 PTX.g4
+javac PTX*.java
+java PTX2PTX test.ptx
+
+grun PTX program -gui < test.ptx
+grun Expr prog -gui
+*/
