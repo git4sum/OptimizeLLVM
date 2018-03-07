@@ -61,6 +61,10 @@ class PTXADDINSTRUCTIONListener extends PTXBaseListener {
       out.peek().append("\t");
     } else{
       out.peek().append("\n");
+      if(ctx.getChild(0).getText().equals(labelName)){
+      labelExist=true;
+      labelIn=true;
+      }
     }
   }
   @Override public void exitInstruction(PTXParser.InstructionContext ctx){
@@ -72,6 +76,10 @@ class PTXADDINSTRUCTIONListener extends PTXBaseListener {
   @Override public void visitTerminal(TerminalNode node){
     out.peek().append(node.getText());
     out.peek().append(" ");
+    if(labelIn && node.getParent() instanceof PTXParser.InstructionContext==true && node.getParent().getChild(0) instanceof PTXParser.LabelNameContext==true){
+      labelIn = false;
+      out.peek().append("\n"+instructionList+"\n");
+    }
   }
 }
 
@@ -131,8 +139,8 @@ class PTXADDLABELListener extends PTXBaseListener {
   }
   @Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
     if(funcIn){
-      out.peek().append("\n"+labelName+" :\n");
       funcIn=false;
+      out.peek().append("\n"+labelName+" :\n");
     }
   }
   @Override public void enterInstruction(PTXParser.InstructionContext ctx){
@@ -259,7 +267,7 @@ public class PTX2PTX {
     return listener.out.peek().toString();
   }
 
-  public static void addInstructionList(String inputPTX, String labelName, String instructionList, String outputName){
+  public static String addInstructionList(String inputPTX, String labelName, String instructionList, String outputName) throws IOException {
 
     PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
     CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -275,7 +283,7 @@ public class PTX2PTX {
 
     // Output file
     FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("Add basicblock ["+labelName+"] into function ["+funcName+"] output file name:  output_"+outputName);
+    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName);
     output.write(listener.out.peek().toString().getBytes());
     output.flush();
     output.close();
@@ -302,7 +310,8 @@ public class PTX2PTX {
     }
 
     input = addLabelName(input, "_ZN8dwt_cuda12rdwt53KernelILi64ELi8EEEvPKiPiiii", "LABEL", "NEWLABEL");
-
+    input = addInstructionList(input, "LABEL", "mov.u32 %r2, %ctaid.y;\nadd.s32 %r332, %r2, 1;\n", "NEWINSTRUCTIONLIST");
+    input = addInstructionList(input, "LABEL", "mov %r2;\nadd 1;\n", "NEWINSTRUCTIONLIST2");
     input = printPTX(input, args[0]);
 
 
