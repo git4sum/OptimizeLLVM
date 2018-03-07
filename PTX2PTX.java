@@ -23,7 +23,7 @@ class PTXADDLABELListener extends PTXBaseListener {
   PTXParser parser;
   String funcName;
   String labelName;
-  int funcExist=-1;
+  boolean funcExist=false, funcIn=false;;
   PTXADDLABELListener(PTXParser parser, String funcName, String labelName){
     out.push(new StringBuilder(""));
     this.parser = parser;
@@ -33,10 +33,22 @@ class PTXADDLABELListener extends PTXBaseListener {
   }
 
   @Override public void enterKernelDirective(PTXParser.KernelDirectiveContext ctx){
-    
+    if(ctx.getChild(1).getText().equals(funcName)){
+      funcExist=true;
+      funcIn=true;
+    }
   }
   @Override public void enterFunctionDirective(PTXParser.FunctionDirectiveContext ctx){
-
+    int idx=0;
+    for(int i=0; i<ctx.getChildCount(); i++){
+      if(ctx.getChild(i) instanceof PTXParser.IdentifierContext==true){
+        idx=i; break;
+      }
+    }
+    if(ctx.getChild(idx).equals(funcName)){
+      funcExist=true;
+      funcIn=true;
+    }
   }
 
   @Override public void exitModDirective(PTXParser.ModDirectiveContext ctx){
@@ -59,6 +71,12 @@ class PTXADDLABELListener extends PTXBaseListener {
   }
   @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
     out.peek().append("\n");
+  }
+  @Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
+    if(funcIn){
+      out.peek().append("\n"+labelName+" :\n");
+      funcIn=false;
+    }
   }
   @Override public void enterInstruction(PTXParser.InstructionContext ctx){
     if(ctx.getChild(0) instanceof PTXParser.LabelNameContext==false){
@@ -205,7 +223,7 @@ public class PTX2PTX {
     }
 
     input = printPTX(input, args[0]);
-    //input = addLabelName(input, "FUNCTION\t", "LABEL", "good~~");
+    input = addLabelName(input, "_ZN8dwt_cuda12rdwt53KernelILi192ELi8EEEvPKiPiiii", "LABEL", "NEWLABEL");
 
 
 
