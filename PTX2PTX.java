@@ -89,15 +89,21 @@ class PTX2PTXListener extends PTXBaseListener {
   @Override 
   public void visitTerminal(TerminalNode node){
     out.peek().append(node.getText());
-    if(node.getText().equals(",")){
+    out.peek().append(" ");
+    /*if(node.getText().equals(",")){
       out.peek().append(" ");
     }
+    else if(node.getParent() instanceof PTXParser.ModDirectiveContext==true){
+      out.peek().append(" ");
+    }*/
   }
 }
 
 public class PTX2PTX {
 
-   public static void printPTX(String inputPTX, String[] args) throws IOException {
+  //public static void add
+
+   public static String printPTX(String inputPTX, String res) throws IOException {
     // Get lexer
     PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX)); //**problem
     //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
@@ -111,19 +117,17 @@ public class PTX2PTX {
     walker.walk(listener, parser.program());// walk from the root of parse tree
 
     // Output file
-    FileOutputStream output = new FileOutputStream(new File("output_"+args[0]));
-    System.out.println("Output file name:  output_"+args[0]);
+    FileOutputStream output = new FileOutputStream(new File("output_"+res));
+    System.out.println("Output file name:  output_"+res);
     output.write(listener.out.peek().toString().getBytes());
     output.flush();
     output.close();
+
+    return listener.out.peek().toString();
   }
 
    public static void main(String[] args) throws IOException {
     String input="", tmp;
-    if (args.length == 0) {
-      System.err.println("Input Filename...");
-      System.exit(1);
-    }
     try {
       BufferedReader rd = new BufferedReader(new FileReader(args[0]));
       while ((tmp = rd.readLine()) != null) {
@@ -135,8 +139,30 @@ public class PTX2PTX {
         System.err.println(e); //it there is any ERROR, print
         System.exit(1);
     }
+    if (args.length == 0) {
+      System.err.println("Input Filename...");
+      System.exit(1);
+    }
 
-    printPTX(input, args);
+    input = printPTX(input, args[0]);
+
+    // Get lexer
+    PTXLexer lexer = new PTXLexer(CharStreams.fromString(input)); //**problem
+    //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
+    // Get a list of matched tokens
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    // Pass tokens to parser
+    PTXParser parser = new PTXParser(tokens);
+    // Walk parse-tree and attach our listener
+    ParseTreeWalker walker = new ParseTreeWalker();
+    PTX2PTXListener listener = new PTX2PTXListener(parser);
+    walker.walk(listener, parser.program());// walk from the root of parse tree
+
+    FileOutputStream output = new FileOutputStream(new File("2222"));
+    System.out.println("Output file name:  2222");
+    output.write(listener.out.peek().toString().getBytes());
+    output.flush();
+    output.close();
 
   }
 }
