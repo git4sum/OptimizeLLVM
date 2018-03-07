@@ -29,7 +29,6 @@ class PTXADDLABELListener extends PTXBaseListener {
     this.parser = parser;
     this.funcName = funcName;
     this.labelName = labelName;
-    out.peek().append(funcName+labelName+"\n\n\n");
   }
 
   @Override public void enterKernelDirective(PTXParser.KernelDirectiveContext ctx){
@@ -222,9 +221,9 @@ public class PTX2PTX {
       System.exit(1);
     }
 
-    input = printPTX(input, args[0]);
-    input = addLabelName(input, "_ZN8dwt_cuda12rdwt53KernelILi192ELi8EEEvPKiPiiii", "LABEL", "NEWLABEL");
+    input = addLabelName(input, "_ZN8dwt_cuda12rdwt53KernelILi64ELi8EEEvPKiPiiii", "LABEL", "NEWLABEL");
 
+    input = printPTX(input, args[0]);
 
 
     /*// Get lexer
