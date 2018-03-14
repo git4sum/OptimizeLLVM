@@ -283,7 +283,7 @@ public class PTX2PTX {
 
     // Output file
     FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName);
+    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName); //here
     output.write(listener.out.peek().toString().getBytes());
     output.flush();
     output.close();
