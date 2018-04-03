@@ -35,24 +35,7 @@ class PTXADDINSTRUCTIONListener extends PTXBaseListener {
     this.instructionList = instructionList;
   }
 
-  @Override  public void exitModDirective(PTXParser.ModDirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void exitDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclarationList(PTXParser.DeclarationListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\t");
-  }
-  @Override public void exitDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\n");
-  }
+
   @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
     out.peek().append("\n");
   }
@@ -116,24 +99,6 @@ class PTXADDLABELListener extends PTXBaseListener {
     }
   }
 
-  @Override public void exitModDirective(PTXParser.ModDirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void exitDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclarationList(PTXParser.DeclarationListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\t");
-  }
-  @Override public void exitDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\n");
-  }
   @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
     out.peek().append("\n");
   }
@@ -283,7 +248,7 @@ public class PTX2PTX {
 
     // Output file
     FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName); ///here
+    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName);
     output.write(listener.out.peek().toString().getBytes());
     output.flush();
     output.close();
