@@ -17,288 +17,178 @@ import java.io.*;
 
 import java.lang.*;
 
-class PTXADDINSTRUCTIONListener extends PTXBaseListener {
+public class PTX2PTX {
+	protected static ParserRuleContext tree;
 
-  Stack<StringBuilder> out = new Stack<StringBuilder>();
-  PTXParser parser;
-  PTXADDINSTRUCTIONListener(PTXParser parser){
-    out.push(new StringBuilder(""));
-    this.parser = parser;
-  }
-  String labelName;
-  String instructionList;
-  boolean labelExist=false, labelIn=false;;
-  PTXADDINSTRUCTIONListener(PTXParser parser, String labelName, String instructionList){
-    out.push(new StringBuilder(""));
-    this.parser = parser;
-    this.labelName = labelName;
-    this.instructionList = instructionList;
-  }
+	public static void main(String[] args) throws IOException {
+		if (args.length == 0) {
+	    	System.err.println("Input Filename...");
+	    	System.exit(1);
+	    }
+	    parseInitPTX(args[0]);
+	    printPTX(tree, args[0]);
+	    insert("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2");
+	    printPTX(tree, "hey");
+	}
 
+	public static void parseInitPTX(String fileName) {
+		String input = "", tmp;
+		
+		try {
+	      BufferedReader rd = new BufferedReader(new FileReader(fileName));
+	      while ((tmp = rd.readLine()) != null) {
+	        input += tmp;
+	        input += "\n";
+	      }
+	      rd.close();
+	    } catch (IOException e) {
+	        System.err.println(e);
+	        System.exit(1);
+	    }
 
-  @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterInstruction(PTXParser.InstructionContext ctx){
-    if(ctx.getChild(0) instanceof PTXParser.LabelNameContext==false){
-      out.peek().append("\t");
-    } else{
-      out.peek().append("\n");
-      if(ctx.getChild(0).getText().equals(labelName)){
-      labelExist=true;
-      labelIn=true;
-      }
-    }
-  }
-  @Override public void exitInstruction(PTXParser.InstructionContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterOperandList(PTXParser.OperandListContext ctx){
-    out.peek().append(" ");
-  }
-  @Override public void visitTerminal(TerminalNode node){
-    out.peek().append(node.getText());
-    out.peek().append(" ");
-    if(labelIn && node.getParent() instanceof PTXParser.InstructionContext==true && node.getParent().getChild(0) instanceof PTXParser.LabelNameContext==true){
-      labelIn = false;
-      out.peek().append("\n"+instructionList+"\n");
-    }
-  }
+		PTXLexer lexer = new PTXLexer(CharStreams.fromString(input));
+	    CommonTokenStream tokens = new CommonTokenStream(lexer);
+	    PTXParser parser = new PTXParser(tokens);
+	    //this.tree = parser.program();
+	    tree = parser.program();
+	}
+
+	public static void insert(String inputPTX, String funcName) { //, int offset
+		PTXsmallLexer lexer = new PTXsmallLexer(CharStreams.fromString(inputPTX));
+	    CommonTokenStream tokens = new CommonTokenStream(lexer);
+	    PTXsmallParser parser = new PTXsmallParser(tokens);
+
+	    ParserRuleContext subtree = findSubTree(funcName); //, offset
+	    	
+	    ParseTreeWalker walker = new ParseTreeWalker();
+	    PTX2Listener listener = new PTX2Listener(parser, subtree);
+	    walker.walk(listener, parser.instructionList());
+	}
+
+	public static ParserRuleContext findSubTree(String funcName) { //, int offset
+		ParseTreeWalker walker = new ParseTreeWalker();
+	    PTXfListener listener = new PTXfListener(funcName);
+	    walker.walk(listener, tree);
+
+	    if(!listener.funcExist) {
+	    	System.out.println("No such a function . . .");
+	    	System.exit(1);
+	    }
+
+		return listener.subtree;
+	}
+
+	public static void printPTX(ParserRuleContext inputTree, String outputName) throws IOException {
+	    ParseTreeWalker walker = new ParseTreeWalker(); // create standard walker
+	    PTX2PTXListener listener = new PTX2PTXListener();
+	    walker.walk(listener, inputTree); // initiate walk of tree with listener
+
+	    // Output file
+	    FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
+	    System.out.println("PTX 2 PTX output file name:  output_"+outputName);
+	    output.write(listener.out.peek().toString().getBytes());
+	    output.flush();
+	    output.close();
+	}
 }
 
-class PTXADDLABELListener extends PTXBaseListener {
+class PTXfListener extends PTXBaseListener {
+	//PTXParser parser;
+	String funcName;
+	ParserRuleContext subtree;
+  	boolean funcExist=false, funcIn=false;
 
-  Stack<StringBuilder> out = new Stack<StringBuilder>();
-  PTXParser parser;
-  String funcName;
-  String labelName;
-  boolean funcExist=false, funcIn=false;;
-  PTXADDLABELListener(PTXParser parser, String funcName, String labelName){
-    out.push(new StringBuilder(""));
-    this.parser = parser;
-    this.funcName = funcName;
-    this.labelName = labelName;
-  }
+	PTXfListener(String funcName){
+		//this.parser = parser;
+		this.funcName = funcName;
+	}
+	@Override public void enterKernelDirective(PTXParser.KernelDirectiveContext ctx){
+		if(ctx.getChild(1).getText().equals(funcName)){
+			funcExist=true;
+			funcIn=true;
+		}
+	}
+	@Override public void enterFunctionDirective(PTXParser.FunctionDirectiveContext ctx){
+		if(ctx.getChild(1).getText().equals(funcName) || ctx.getChild(4).getText().equals(funcName)){
+			funcExist=true;
+			funcIn=true;
+		}
+	}
+	@Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
+    	if(funcIn){
+  			funcIn=false;
+  			subtree = ctx;
+  		}
+  	}
+}
 
-  @Override public void enterKernelDirective(PTXParser.KernelDirectiveContext ctx){
-    if(ctx.getChild(1).getText().equals(funcName)){
-      funcExist=true;
-      funcIn=true;
-    }
-  }
-  @Override public void enterFunctionDirective(PTXParser.FunctionDirectiveContext ctx){
-    int idx=0;
-    for(int i=0; i<ctx.getChildCount(); i++){
-      if(ctx.getChild(i) instanceof PTXParser.IdentifierContext==true){
-        idx=i; break;
-      }
-    }
-    if(ctx.getChild(idx).equals(funcName)){
-      funcExist=true;
-      funcIn=true;
-    }
-  }
-
-  @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
-    if(funcIn){
-      funcIn=false;
-      out.peek().append("\n"+labelName+" :\n");
-    }
-  }
-  @Override public void enterInstruction(PTXParser.InstructionContext ctx){
-    if(ctx.getChild(0) instanceof PTXParser.LabelNameContext==false){
-      out.peek().append("\t");
-    } else{
-      out.peek().append("\n");
-    }
-  }
-  @Override public void exitInstruction(PTXParser.InstructionContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterOperandList(PTXParser.OperandListContext ctx){
-    out.peek().append(" ");
-  }
-  @Override public void visitTerminal(TerminalNode node){
-    out.peek().append(node.getText());
-    out.peek().append(" ");
-  }
-
+class PTX2Listener extends PTXsmallBaseListener {
+	PTXsmallParser parser;
+	ParserRuleContext context;
+	PTX2Listener(PTXsmallParser parser, ParserRuleContext context) {
+		//super(parser);
+		this.parser = parser;
+		this.context = context;
+	}
+	/*@Override public void exitInstructionList(PTXsmallParser.InstructionListContext ctx){
+		for (int i = 0; i < ctx.getChildCount(); i++) {
+			ParserRuleContext child = ctx.getChild(i);
+			context.addChild(child);
+		}
+	}*/
+	@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
+		context.addChild(ctx);
+	}
 }
 
 class PTX2PTXListener extends PTXBaseListener {
+	Stack<StringBuilder> out = new Stack<StringBuilder>();
+	//PTXParser parser;
+	PTX2PTXListener(){
+		out.push(new StringBuilder(""));
+		//this.parser = parser;
+	}
 
-  Stack<StringBuilder> out = new Stack<StringBuilder>();
-  PTXParser parser;
-  PTX2PTXListener(PTXParser parser){
-    out.push(new StringBuilder(""));
-    this.parser = parser;
-  }
-
-  @Override  public void exitModDirective(PTXParser.ModDirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void exitDirective(PTXParser.DirectiveContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclarationList(PTXParser.DeclarationListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\t");
-  }
-  @Override public void exitDeclaration(PTXParser.DeclarationContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterInstruction(PTXParser.InstructionContext ctx){
-    if(ctx.getChild(0) instanceof PTXParser.LabelNameContext==false){
-      out.peek().append("\t");
-    } else{
-      out.peek().append("\n");
-    }
-  }
-  @Override public void exitInstruction(PTXParser.InstructionContext ctx){
-    out.peek().append("\n");
-  }
-  @Override public void enterOperandList(PTXParser.OperandListContext ctx){
-    out.peek().append(" ");
-  }
-  @Override public void visitTerminal(TerminalNode node){
-    out.peek().append(node.getText());
-    out.peek().append(" ");
-    /*if(node.getText().equals(",")){
-      out.peek().append(" ");
-    }
-    else if(node.getParent() instanceof PTXParser.ModDirectiveContext==true){
-      out.peek().append(" ");
-    }*/
-  }
-}
-
-public class PTX2PTX {
-
-  public static String printPTX(String inputPTX, String outputName) throws IOException {
-    // Get lexer
-    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX)); //**problem
-    //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
-    // Get a list of matched tokens
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    // Pass tokens to parser
-    PTXParser parser = new PTXParser(tokens);
-    // Walk parse-tree and attach our listener
-    ParseTreeWalker walker = new ParseTreeWalker();
-    PTX2PTXListener listener = new PTX2PTXListener(parser);
-    walker.walk(listener, parser.program());// walk from the root of parse tree
-
-    // Output file
-    FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("PTX 2 PTX output file name:  output_"+outputName);
-    output.write(listener.out.peek().toString().getBytes());
-    output.flush();
-    output.close();
-
-    return listener.out.peek().toString();
-  }
-
-  public static String addLabelName(String inputPTX, String funcName, String labelName, String outputName) throws IOException {
-
-    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    PTXParser parser = new PTXParser(tokens);
-    ParseTreeWalker walker = new ParseTreeWalker();
-    PTXADDLABELListener listener = new PTXADDLABELListener(parser, funcName, labelName);
-    walker.walk(listener, parser.program());
-
-    if(!listener.funcExist){
-      System.err.println("No Such a Function...");
-      System.exit(1);
-    }
-
-    // Output file
-    FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("Add basicblock ["+labelName+"] into function ["+funcName+"] output file name:  output_"+outputName);
-    output.write(listener.out.peek().toString().getBytes());
-    output.flush();
-    output.close();
-
-    return listener.out.peek().toString();
-  }
-
-  public static String addInstructionList(String inputPTX, String labelName, String instructionList, String outputName) throws IOException {
-
-    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    PTXParser parser = new PTXParser(tokens);
-    ParseTreeWalker walker = new ParseTreeWalker();
-    PTXADDINSTRUCTIONListener listener = new PTXADDINSTRUCTIONListener(parser, labelName, instructionList);
-    walker.walk(listener, parser.program());
-
-    if(!listener.labelExist){
-      System.err.println("No Such a Basicblock...");
-      System.exit(1);
-    }
-
-    // Output file
-    FileOutputStream output = new FileOutputStream(new File("output_"+outputName));
-    System.out.println("Add instruction list into basicblock ["+labelName+"] output file name:  output_"+outputName);
-    output.write(listener.out.peek().toString().getBytes());
-    output.flush();
-    output.close();
-
-    return listener.out.peek().toString();
-  }
-
-   public static void main(String[] args) throws IOException {
-    String input="", tmp;
-    try {
-      BufferedReader rd = new BufferedReader(new FileReader(args[0]));
-      while ((tmp = rd.readLine()) != null) {
-        input += tmp;
-        input += "\n";  //??
-      }
-      rd.close();
-    } catch (IOException e) {
-        System.err.println(e); //it there is any ERROR, print
-        System.exit(1);
-    }
-    if (args.length == 0) {
-      System.err.println("Input Filename...");
-      System.exit(1);
-    }
-
-    input = addLabelName(input, "_ZN8dwt_cuda12rdwt53KernelILi64ELi8EEEvPKiPiiii", "LABEL", "NEWLABEL");
-    input = addInstructionList(input, "LABEL", "mov.u32 %r2, %ctaid.y;\nadd.s32 %r332, %r2, 1;\n", "NEWINSTRUCTIONLIST");
-    input = addInstructionList(input, "LABEL", "mov %r2;\nadd 1;\n", "NEWINSTRUCTIONLIST2");
-    input = printPTX(input, args[0]);
-
-
-    /*// Get lexer
-    PTXLexer lexer = new PTXLexer(CharStreams.fromString(input)); //**problem
-    //PTXLexer lexer = new PTXLexer(CharStreams.fromFileName(input)); //**problem
-    // Get a list of matched tokens
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    // Pass tokens to parser
-    PTXParser parser = new PTXParser(tokens);
-    // Walk parse-tree and attach our listener
-    ParseTreeWalker walker = new ParseTreeWalker();
-    PTX2PTXListener listener = new PTX2PTXListener(parser);
-    walker.walk(listener, parser.program());// walk from the root of parse tree
-
-    FileOutputStream output = new FileOutputStream(new File("2222"));
-    System.out.println("Output file name:  2222");
-    output.write(listener.out.peek().toString().getBytes());
-    output.flush();
-    output.close();*/
-
-  }
+	@Override public void exitProgram(PTXParser.ProgramContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void exitModDirective(PTXParser.ModDirectiveContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterDirective(PTXParser.DirectiveContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void exitDirective(PTXParser.DirectiveContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterDeclarationList(PTXParser.DeclarationListContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterDeclaration(PTXParser.DeclarationContext ctx){
+		out.peek().append("\t");
+	}
+	@Override public void exitDeclaration(PTXParser.DeclarationContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterInstruction(PTXParser.InstructionContext ctx){
+		if(ctx.getChild(0) instanceof PTXParser.LabelNameContext==false){
+			out.peek().append("\t");
+		} else{
+			out.peek().append("\n");
+		}
+	}
+	@Override public void exitInstruction(PTXParser.InstructionContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterOperandList(PTXParser.OperandListContext ctx){
+		out.peek().append(" ");
+	}
+	@Override public void visitTerminal(TerminalNode node){
+		out.peek().append(node.getText()+" ");
+	}
 }
 /*
 antlr4 PTX.g4
