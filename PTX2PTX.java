@@ -190,11 +190,3 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append(node.getText()+" ");
 	}
 }
-/*
-antlr4 PTX.g4
-javac PTX*.java
-java PTX2PTX test.ptx
-
-grun PTX program -gui < test.ptx
-grun Expr prog -gui
-*/
