@@ -26,9 +26,8 @@ public class PTX2PTX {
 	    	System.exit(1);
 	    }
 	    parseInitPTX(args[0]);
-	    printPTX(tree, args[0]);
 	    insert("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2");
-	    printPTX(tree, "hey");
+	    printPTX(tree, args[0]);
 	}
 
 	public static void parseInitPTX(String fileName) {
@@ -54,9 +53,12 @@ public class PTX2PTX {
 	}
 
 	public static void insert(String inputPTX, String funcName) { //, int offset
-		PTXsmallLexer lexer = new PTXsmallLexer(CharStreams.fromString(inputPTX));
+		// PTXsmallLexer lexer = new PTXsmallLexer(CharStreams.fromString(inputPTX));
+	 //    CommonTokenStream tokens = new CommonTokenStream(lexer);
+	 //    PTXsmallParser parser = new PTXsmallParser(tokens);
+		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
-	    PTXsmallParser parser = new PTXsmallParser(tokens);
+	    PTXParser parser = new PTXParser(tokens);
 
 	    ParserRuleContext subtree = findSubTree(funcName); //, offset
 	    	
@@ -122,23 +124,29 @@ class PTXfListener extends PTXBaseListener {
   	}
 }
 
-class PTX2Listener extends PTXsmallBaseListener {
-	PTXsmallParser parser;
+class PTX2Listener extends PTXBaseListener {
+	PTXParser parser;
 	ParserRuleContext context;
-	PTX2Listener(PTXsmallParser parser, ParserRuleContext context) {
+	PTX2Listener(PTXParser parser, ParserRuleContext context) {
 		//super(parser);
 		this.parser = parser;
 		this.context = context;
 	}
-	/*@Override public void exitInstructionList(PTXsmallParser.InstructionListContext ctx){
+	@Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
 		for (int i = 0; i < ctx.getChildCount(); i++) {
-			ParserRuleContext child = ctx.getChild(i);
-			context.addChild(child);
+			ParseTree child = ctx.getChild(i);
+			if (child instanceof PTXParser.InstructionContext == true) {
+				System.out.println("This is ParserRuleContext");
+				this.context.addChild((PTXParser.InstructionContext) child);
+				System.out.println(this.context.getText());
+			}
+			System.out.println(this.context.getChildCount());
+			//context.addChild(child);
 		}
-	}*/
-	@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
-		context.addChild(ctx);
 	}
+	/*@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
+		context.addChild(ctx);
+	}*/
 }
 
 class PTX2PTXListener extends PTXBaseListener {
@@ -190,3 +198,11 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append(node.getText()+" ");
 	}
 }
+/*
+antlr4 PTX.g4
+javac PTX*.java
+java PTX2PTX test.ptx
+
+grun PTX program -gui < test.ptx
+grun Expr prog -gui
+*/
