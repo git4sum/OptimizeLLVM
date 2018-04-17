@@ -26,7 +26,9 @@ public class PTX2PTX {
 	    	System.exit(1);
 	    }
 	    parseInitPTX(args[0]);
-	    insert("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2");
+	    insertInst("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2", 0);
+//	    printPTX(tree, args[0]);
+	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}", 0);
 	    printPTX(tree, args[0]);
 	}
 
@@ -52,18 +54,36 @@ public class PTX2PTX {
 	    tree = parser.program();
 	}
 
-	public static void insert(String inputPTX, String funcName) { //, int offset
-		// PTXsmallLexer lexer = new PTXsmallLexer(CharStreams.fromString(inputPTX));
-	 //    CommonTokenStream tokens = new CommonTokenStream(lexer);
-	 //    PTXsmallParser parser = new PTXsmallParser(tokens);
+	public static void insertFunc(String inputPTX, int offset){
 		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
 
-	    ParserRuleContext subtree = findSubTree(funcName); //, offset
+	    ParserRuleContext directiveTree = findDirTree();
+	
+		ParseTreeWalker walker = new ParseTreeWalker();
+	    PTX2Listener listener = new PTX2Listener(parser, directiveTree, offset);
+
+	    walker.walk(listener, parser.directive());
+	}
+
+	public static ParserRuleContext findDirTree() {
+		ParseTreeWalker walker = new ParseTreeWalker();
+	    PTXfListener listener = new PTXfListener();
+	    walker.walk(listener, tree);
+
+		return listener.dirtree;
+	}
+
+	public static void insertInst(String inputPTX, String funcName, int offset) {
+		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
+	    CommonTokenStream tokens = new CommonTokenStream(lexer);
+	    PTXParser parser = new PTXParser(tokens);
+
+	    ParserRuleContext subtree = findSubTree(funcName);
 	    	
 	    ParseTreeWalker walker = new ParseTreeWalker();
-	    PTX2Listener listener = new PTX2Listener(parser, subtree);
+	    PTX2Listener listener = new PTX2Listener(parser, subtree, offset); //offset starts from zero(0)
 	    walker.walk(listener, parser.instructionList());
 	}
 
@@ -98,8 +118,9 @@ class PTXfListener extends PTXBaseListener {
 	//PTXParser parser;
 	String funcName;
 	ParserRuleContext subtree;
+	ParserRuleContext dirtree;
   	boolean funcExist=false, funcIn=false;
-
+  	PTXfListener(){}
 	PTXfListener(String funcName){
 		//this.parser = parser;
 		this.funcName = funcName;
@@ -122,26 +143,35 @@ class PTXfListener extends PTXBaseListener {
   			subtree = ctx;
   		}
   	}
+  	@Override public void exitDirectiveList(PTXParser.DirectiveListContext ctx){
+  		dirtree = ctx;
+  	}
 }
 
 class PTX2Listener extends PTXBaseListener {
 	PTXParser parser;
+	int offset;
 	ParserRuleContext context;
-	PTX2Listener(PTXParser parser, ParserRuleContext context) {
+	PTX2Listener(PTXParser parser, ParserRuleContext context, int offset) {
 		//super(parser);
 		this.parser = parser;
 		this.context = context;
+		this.offset = offset;
 	}
 	@Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
-		for (int i = 0; i < ctx.getChildCount(); i++) {
-			ParseTree child = ctx.getChild(i);
-			if (child instanceof PTXParser.InstructionContext == true) {
-				System.out.println("This is ParserRuleContext");
-				this.context.addChild((PTXParser.InstructionContext) child);
-				System.out.println(this.context.getText());
+		if(context instanceof PTXParser.InstructionListContext == true){
+			for (int i = 0; i < ctx.getChildCount(); i++) {
+				ParseTree child = ctx.getChild(i);
+				if (child instanceof PTXParser.InstructionContext == true) {
+					this.context.addChild((PTXParser.InstructionContext) child);
+				}
 			}
-			System.out.println(this.context.getChildCount());
-			//context.addChild(child);
+		}
+	}
+	@Override public void exitDirective(PTXParser.DirectiveContext ctx){
+	//@Override public void exitDirectiveList(PTXParser.DirectiveListContext ctx){
+		if(context instanceof PTXParser.DirectiveListContext == true){
+			this.context.addChild(ctx);
 		}
 	}
 	/*@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
