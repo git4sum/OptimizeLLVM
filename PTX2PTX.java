@@ -19,12 +19,24 @@ import java.lang.*;
 
 public class PTX2PTX {
 	protected static ParserRuleContext tree;
+	//Map<String, Integer> var_map = new HashMap<String, integer>();
+	//protected static HashMap<String,Integer>[] varList;
+
+	public static String getNum(String str) {
+		return str.replaceAll("[^0-9]", ""); 
+	}
+	public static String getIdent(String str){
+		return str.replaceAll("[%^0-9]", "");	
+	}
 
 	public static void main(String[] args) throws IOException {
 		if (args.length == 0) {
 	    	System.err.println("Input Filename...");
 	    	System.exit(1);
 	    }
+
+	    System.out.println(getNum("%rd34"));
+	    System.out.println(getIdent("%rd34"));
 	    parseInitPTX(args[0]);
 	    insertInst("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2", 0);
 //	    printPTX(tree, args[0]);
@@ -52,6 +64,7 @@ public class PTX2PTX {
 	    PTXParser parser = new PTXParser(tokens);
 	    //this.tree = parser.program();
 	    tree = parser.program();
+//	    varList = new HashMap[parser.program().getChild(1).getChildCount()];
 	}
 
 	public static void insertFunc(String inputPTX, int offset){
@@ -169,7 +182,6 @@ class PTX2Listener extends PTXBaseListener {
 		}
 	}
 	@Override public void exitDirective(PTXParser.DirectiveContext ctx){
-	//@Override public void exitDirectiveList(PTXParser.DirectiveListContext ctx){
 		if(context instanceof PTXParser.DirectiveListContext == true){
 			this.context.addChild(ctx);
 		}
@@ -177,6 +189,12 @@ class PTX2Listener extends PTXBaseListener {
 	/*@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
 		context.addChild(ctx);
 	}*/
+	@Override public void exitIdentifier(PTXParser.IdentifierContext ctx){
+		if(ctx.getParent().getParent() instanceof PTXParser.OperandContext == true){
+			String regStr = ctx.getText();
+			//if(regStr.charAt)
+		}
+	}
 }
 
 class PTX2PTXListener extends PTXBaseListener {
@@ -197,6 +215,12 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append("\n");
 	}
 	@Override public void exitDirective(PTXParser.DirectiveContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void enterParamList(PTXParser.ParamListContext ctx){
+		out.peek().append("\n");
+	}
+	@Override public void exitParamList(PTXParser.ParamListContext ctx){
 		out.peek().append("\n");
 	}
 	@Override public void enterDeclarationList(PTXParser.DeclarationListContext ctx){
@@ -227,12 +251,3 @@ class PTX2PTXListener extends PTXBaseListener {
 	@Override public void visitTerminal(TerminalNode node){
 		out.peek().append(node.getText()+" ");
 	}
-}
-/*
-antlr4 PTX.g4
-javac PTX*.java
-java PTX2PTX test.ptx
-
-grun PTX program -gui < test.ptx
-grun Expr prog -gui
-*/
