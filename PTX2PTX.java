@@ -19,28 +19,25 @@ import java.lang.*;
 
 public class PTX2PTX {
 	protected static ParserRuleContext tree;
-	//Map<String, Integer> var_map = new HashMap<String, integer>();
-	//protected static HashMap<String,Integer>[] varList;
 
-	public static String getNum(String str) {
-		return str.replaceAll("[^0-9]", ""); 
+	public static Integer getNum(String str) {
+		return Integer.parseInt(str.replaceAll("[^0-9]", "")); 
 	}
 	public static String getIdent(String str){
 		return str.replaceAll("[%^0-9]", "");	
 	}
-
+	
 	public static void main(String[] args) throws IOException {
 		if (args.length == 0) {
 	    	System.err.println("Input Filename...");
 	    	System.exit(1);
 	    }
 
-	    System.out.println(getNum("%rd34"));
-	    System.out.println(getIdent("%rd34"));
 	    parseInitPTX(args[0]);
-	    insertInst("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%p61, %r860, %r328;", "cudaMalloc2", 0);
+	    insertInst("BB0_55:\nadd.s32 	%r860, %r1, 193;\nsetp.lt.s32	%rd61, %r860, %r328;", "cudaMalloc2", 0);
+
 //	    printPTX(tree, args[0]);
-	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}", 0);
+//	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}", 0);
 	    printPTX(tree, args[0]);
 	}
 
@@ -64,7 +61,6 @@ public class PTX2PTX {
 	    PTXParser parser = new PTXParser(tokens);
 	    //this.tree = parser.program();
 	    tree = parser.program();
-//	    varList = new HashMap[parser.program().getChild(1).getChildCount()];
 	}
 
 	public static void insertFunc(String inputPTX, int offset){
@@ -96,8 +92,13 @@ public class PTX2PTX {
 	    ParserRuleContext subtree = findSubTree(funcName);
 	    	
 	    ParseTreeWalker walker = new ParseTreeWalker();
-	    PTX2Listener listener = new PTX2Listener(parser, subtree, offset); //offset starts from zero(0)
+	    PTX2Listener listener = new PTX2Listener(parser, subtree, offset); //offset starts from zero(0)|
 	    walker.walk(listener, parser.instructionList());
+
+	    HashMap<String, Integer> newmap = listener.newmap;
+		PTXfListener maplistener = new PTXfListener(funcName, newmap);
+		walker.walk(maplistener, tree);
+	    //offset = listener.offset;
 	}
 
 	public static ParserRuleContext findSubTree(String funcName) { //, int offset
@@ -130,29 +131,72 @@ public class PTX2PTX {
 class PTXfListener extends PTXBaseListener {
 	//PTXParser parser;
 	String funcName;
-	ParserRuleContext subtree;
-	ParserRuleContext dirtree;
-  	boolean funcExist=false, funcIn=false;
+	HashMap<String, Integer> map;
+
+	boolean mapExist = false, mapFunc = false;
+	Integer mapIndex = 0;
+	ParserRuleContext subtree, dirtree;
+  	boolean funcExist = false, funcIn = false;
   	PTXfListener(){}
 	PTXfListener(String funcName){
 		//this.parser = parser;
 		this.funcName = funcName;
 	}
+	PTXfListener(String funcName, HashMap<String, Integer> map){
+		this.funcName = funcName;
+		this.map = map;
+		mapExist = true;
+	}
+	@Override public void enterRegvecVal(PTXParser.RegvecValContext ctx){
+		if(mapExist && mapFunc){
+			if(ctx.getChildCount() > 1){ // ctx is register declaration
+				String regIdent = PTX2PTX.getIdent(ctx.getChild(0).getText());
+				Integer regNum = PTX2PTX.getNum(ctx.getChild(1).getText());
+
+				if(map.containsKey(regIdent)){
+					if(regNum <=  map.get(regIdent)){ // need to change
+					//	System.out.print(ctx.getText()+" => ");
+					//	System.out.println("%"+regIdent+"<"+String.valueOf(map.get(regIdent)+1)+">");
+						//ctx.getChild(1).setText(regIdent);
+						//TerminalNode child1 = TerminalNode(ctx.getChild(1));
+						//System.out.println(child1.getSymbol());
+					}
+				}
+			}
+		}
+	}
+	@Override	public void visitTerminal(TerminalNode node) {
+		//System.out.println(node.getSymbol());
+		if(mapExist && mapFunc){
+			if(node.getParent() instanceof PTXParser.RegvecValContext == true){
+				System.out.println(node.toString());
+			}
+			if(node.getParent().getParent() instanceof PTXParser.RegvecValContext == true){
+				System.out.println(node.toString());
+			}
+		}
+
+	}
+	@Override public void exitDeclarationList(PTXParser.DeclarationListContext ctx){
+		mapFunc = false;
+	}
 	@Override public void enterKernelDirective(PTXParser.KernelDirectiveContext ctx){
 		if(ctx.getChild(1).getText().equals(funcName)){
-			funcExist=true;
-			funcIn=true;
+			funcExist = true;
+			funcIn = true;
+			mapFunc = true;
 		}
 	}
 	@Override public void enterFunctionDirective(PTXParser.FunctionDirectiveContext ctx){
 		if(ctx.getChild(1).getText().equals(funcName) || ctx.getChild(4).getText().equals(funcName)){
-			funcExist=true;
-			funcIn=true;
+			funcExist = true;
+			funcIn = true;
+			mapFunc = true;
 		}
 	}
 	@Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
     	if(funcIn){
-  			funcIn=false;
+  			funcIn = false;
   			subtree = ctx;
   		}
   	}
@@ -165,14 +209,38 @@ class PTX2Listener extends PTXBaseListener {
 	PTXParser parser;
 	int offset;
 	ParserRuleContext context;
+
+	int mapIndex = 0;
+	HashMap<String, Integer> newmap = new HashMap<String, Integer>();;
 	PTX2Listener(PTXParser parser, ParserRuleContext context, int offset) {
 		//super(parser);
 		this.parser = parser;
 		this.context = context;
 		this.offset = offset;
 	}
+
+	@Override public void exitOperand(PTXParser.OperandContext ctx) {
+		if(ctx.getChildCount() == 1){
+			if(ctx.getChild(0).getChild(0) instanceof PTXParser.IdentifierContext == true){
+				String tempText = ctx.getChild(0).getChild(0).getChild(0).getText();
+				if(tempText.charAt(0) == '%'){
+					String tempIdent = PTX2PTX.getIdent(tempText);
+					Integer tempNum = PTX2PTX.getNum(tempText);
+					if(newmap.containsKey(tempIdent)){
+						if(newmap.get(tempIdent) <  tempNum){
+							newmap.put(tempIdent, tempNum);
+						}
+					}
+					else{
+						newmap.put(tempIdent, tempNum);
+					}
+				}
+			}
+		}
+	}
+
 	@Override public void exitInstructionList(PTXParser.InstructionListContext ctx){
-		if(context instanceof PTXParser.InstructionListContext == true){
+		if(context instanceof PTXParser.InstructionListContext == true){ // case: insert instruction
 			for (int i = 0; i < ctx.getChildCount(); i++) {
 				ParseTree child = ctx.getChild(i);
 				if (child instanceof PTXParser.InstructionContext == true) {
@@ -186,9 +254,6 @@ class PTX2Listener extends PTXBaseListener {
 			this.context.addChild(ctx);
 		}
 	}
-	/*@Override public void enterInstruction(PTXsmallParser.InstructionContext ctx) {
-		context.addChild(ctx);
-	}*/
 	@Override public void exitIdentifier(PTXParser.IdentifierContext ctx){
 		if(ctx.getParent().getParent() instanceof PTXParser.OperandContext == true){
 			String regStr = ctx.getText();
@@ -251,3 +316,4 @@ class PTX2PTXListener extends PTXBaseListener {
 	@Override public void visitTerminal(TerminalNode node){
 		out.peek().append(node.getText()+" ");
 	}
+}
