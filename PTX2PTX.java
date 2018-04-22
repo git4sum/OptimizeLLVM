@@ -155,22 +155,15 @@ class PTXfListener extends PTXBaseListener {
 
 				if(map.containsKey(regIdent)){
 					if(regNum <=  map.get(regIdent)){ // need to change
-					//	System.out.print(ctx.getText()+" => ");
-					//	System.out.println("%"+regIdent+"<"+String.valueOf(map.get(regIdent)+1)+">");
 						TerminalNode id = (TerminalNode) ctx.getChild(1);
 						CommonToken token = (CommonToken) id.getSymbol();
 						token.setText("<"+String.valueOf(map.get(regIdent)+1)+">");
-						System.out.print(ctx.getText());
-						//ctx.getChild(1).setText(regIdent);
-						//TerminalNode child1 = TerminalNode(ctx.getChild(1));
-						//System.out.println(child1.getSymbol());
 					}
 				}
 			}
 		}
 	}
 	@Override	public void visitTerminal(TerminalNode node) {
-		//System.out.println(node.getSymbol());
 		if(mapExist && mapFunc){
 			if(node.getParent() instanceof PTXParser.RegvecValContext == true){
 				/*System.out.println(node.toString());
