@@ -157,6 +157,10 @@ class PTXfListener extends PTXBaseListener {
 					if(regNum <=  map.get(regIdent)){ // need to change
 					//	System.out.print(ctx.getText()+" => ");
 					//	System.out.println("%"+regIdent+"<"+String.valueOf(map.get(regIdent)+1)+">");
+						TerminalNode id = (TerminalNode) ctx.getChild(1);
+						CommonToken token = (CommonToken) id.getSymbol();
+						token.setText("<"+String.valueOf(map.get(regIdent)+1)+">");
+						System.out.print(ctx.getText());
 						//ctx.getChild(1).setText(regIdent);
 						//TerminalNode child1 = TerminalNode(ctx.getChild(1));
 						//System.out.println(child1.getSymbol());
@@ -169,10 +173,16 @@ class PTXfListener extends PTXBaseListener {
 		//System.out.println(node.getSymbol());
 		if(mapExist && mapFunc){
 			if(node.getParent() instanceof PTXParser.RegvecValContext == true){
-				System.out.println(node.toString());
+				/*System.out.println(node.toString());
+				CommonToken token = (CommonToken) node.getSymbol();
+				token.setText("<FUNC>");
+				System.out.println(node.toString());*/
 			}
 			if(node.getParent().getParent() instanceof PTXParser.RegvecValContext == true){
-				System.out.println(node.toString());
+				/*System.out.println(node.toString());
+				CommonToken token = (CommonToken) node.getSymbol();
+				token.setText("<FUNC>");
+				System.out.println(node.toString());*/
 			}
 		}
 
