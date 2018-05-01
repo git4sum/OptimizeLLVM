@@ -17,6 +17,23 @@ import java.io.*;
 
 import java.lang.*;
 
+final class InsertRuleContext extends ParserRuleContext {
+
+	//public List<ParseTree> children = super.children;
+
+	/*public  (ParserRuleContext ctx){
+	}*/
+
+	public <T extends ParseTree> T addAnyChildAt(T t, Integer offset) {
+		if ( children==null ) children = new ArrayList<>();
+		children.add(offset, t);
+		return t;
+	}
+
+	public RuleContext addChildAt(RuleContext ctx, Integer offset){
+		return addAnyChildAt(ctx, offset);
+	}
+}
 public class PTX2PTX {
 	protected static ParserRuleContext tree;
 
@@ -90,7 +107,7 @@ public class PTX2PTX {
 		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
-
+                                                                                                                    
 	    ParserRuleContext subtree = findSubTree(funcName);
 	    	
 	    ParseTreeWalker walker = new ParseTreeWalker();
@@ -211,20 +228,18 @@ class PTX2Listener extends PTXBaseListener {
 			for (int i = 0; i < ctx.getChildCount(); i++) {
 				ParseTree child = ctx.getChild(i);
 				if (child instanceof PTXParser.InstructionContext == true) {
-					this.context.addChild((PTXParser.InstructionContext) child);
+					if (this.context instanceof ParserRuleContext == true){
+						System.out.println("True");
+					}
+					((InsertRuleContext)((ParserRuleContext)this.context)).addChildAt((PTXParser.InstructionContext) child, offset);
+					//this.context.addChild((PTXParser.InstructionContext) child);
 				}
 			}
 		}
 	}
 	@Override public void exitDirective(PTXParser.DirectiveContext ctx){
-		if(context instanceof PTXParser.DirectiveListContext == true){
+		if(context instanceof PTXParser.DirectiveListContext == true){ // case: insert function
 			this.context.addChild(ctx);
-		}
-	}
-	@Override public void exitIdentifier(PTXParser.IdentifierContext ctx){
-		if(ctx.getParent().getParent() instanceof PTXParser.OperandContext == true){
-			String regStr = ctx.getText();
-			//if(regStr.charAt)
 		}
 	}
 }
@@ -347,6 +362,13 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append("\n");
 	}
 	@Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
+		//System.out.println(ctx.getChild(0).getClass());
+		PTXParser.InstructionContext temp = (PTXParser.InstructionContext)ctx.getChild(ctx.getChildCount()-1);
+		ctx.removeLastChild();
+		if(temp instanceof PTXParser.InstructionContext == true){
+			//temp.setParent(ctx);
+			ctx.addChild(temp);
+		}
 		out.peek().append("\n");
 	}
 	@Override public void enterInstruction(PTXParser.InstructionContext ctx){
@@ -366,3 +388,11 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append(node.getText()+" ");
 	}
 }
+/*
+antlr4 PTX.g4
+javac PTX*.java
+java PTX2PTX test.ptx
+
+grun PTX program -gui < test.ptx
+grun Expr prog -gui
+*/
