@@ -17,16 +17,16 @@ import java.io.*;
 
 import java.lang.*;
 
-final class InsertRuleContext extends ParserRuleContext {
-
-	//public List<ParseTree> children = super.children;
-
-	/*public  (ParserRuleContext ctx){
-	}*/
-
+class InsertRuleContext {
+	ParserRuleContext ctx;
+	public InsertRuleContext(ParserRuleContext ctx) {
+		this.ctx = ctx;
+	}
 	public <T extends ParseTree> T addAnyChildAt(T t, Integer offset) {
-		if ( children==null ) children = new ArrayList<>();
-		children.add(offset, t);
+		if ( ctx.children==null ) ctx.children = new ArrayList<>();
+		System.out.println(ctx.children.get(0).getText().toString());
+		ctx.children.add(offset, t);
+		System.out.println(ctx.children.get(0).getText().toString());
 		return t;
 	}
 
@@ -54,8 +54,8 @@ public class PTX2PTX {
 	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc2", 0);
 
 //	    printPTX(tree, args[0]);
-	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}", 0);
-	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc3", 0);
+//	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}");
+	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc", 0);
 	    modifyOpcode("setp .lt .s32 ", "cudaMalloc", 1);
 	    printPTX(tree, args[0]);
 	}
@@ -82,7 +82,7 @@ public class PTX2PTX {
 	    tree = parser.program();
 	}
 
-	public static void insertFunc(String inputPTX, int offset){
+	public static void insertFunc(String inputPTX){
 		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
@@ -90,7 +90,7 @@ public class PTX2PTX {
 	    ParserRuleContext directiveTree = findDirTree();
 	
 		ParseTreeWalker walker = new ParseTreeWalker();
-	    PTX2Listener listener = new PTX2Listener(parser, directiveTree, offset);
+	    PTX2Listener listener = new PTX2Listener(parser, directiveTree);
 
 	    walker.walk(listener, parser.directive());
 	}
@@ -120,7 +120,7 @@ public class PTX2PTX {
 	    //offset = listener.offset;
 	}
 
-	public static ParserRuleContext findSubTree(String funcName) { //, int offset
+	public static ParserRuleContext findSubTree(String funcName) {
 		ParseTreeWalker walker = new ParseTreeWalker();
 	    PTXfListener listener = new PTXfListener(funcName);
 	    walker.walk(listener, tree);
@@ -229,9 +229,11 @@ class PTX2Listener extends PTXBaseListener {
 				ParseTree child = ctx.getChild(i);
 				if (child instanceof PTXParser.InstructionContext == true) {
 					if (this.context instanceof ParserRuleContext == true){
-						System.out.println("True");
+						System.out.println("This is ParserRuleContext");
+						InsertRuleContext tmp = new InsertRuleContext(this.context);
+						tmp.addChildAt((PTXParser.InstructionContext) child, offset);
 					}
-					((InsertRuleContext)((ParserRuleContext)this.context)).addChildAt((PTXParser.InstructionContext) child, offset);
+					
 					//this.context.addChild((PTXParser.InstructionContext) child);
 				}
 			}
@@ -388,11 +390,3 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append(node.getText()+" ");
 	}
 }
-/*
-antlr4 PTX.g4
-javac PTX*.java
-java PTX2PTX test.ptx
-
-grun PTX program -gui < test.ptx
-grun Expr prog -gui
-*/
