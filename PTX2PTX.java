@@ -24,9 +24,7 @@ class InsertRuleContext {
 	}
 	public <T extends ParseTree> T addAnyChildAt(T t, Integer offset) {
 		if ( ctx.children==null ) ctx.children = new ArrayList<>();
-		System.out.println(ctx.children.get(0).getText().toString());
 		ctx.children.add(offset, t);
-		System.out.println(ctx.children.get(0).getText().toString());
 		return t;
 	}
 
@@ -53,8 +51,7 @@ public class PTX2PTX {
 	    parseInitPTX(args[0]);
 	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc2", 0);
 
-//	    printPTX(tree, args[0]);
-//	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}");
+	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}");
 	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc", 0);
 	    modifyOpcode("setp .lt .s32 ", "cudaMalloc", 1);
 	    printPTX(tree, args[0]);
@@ -78,7 +75,6 @@ public class PTX2PTX {
 		PTXLexer lexer = new PTXLexer(CharStreams.fromString(input));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
-	    //this.tree = parser.program();
 	    tree = parser.program();
 	}
 
@@ -117,7 +113,6 @@ public class PTX2PTX {
 	    HashMap<String, Integer> newmap = listener.newmap;
 		PTXfListener maplistener = new PTXfListener(funcName, newmap);
 		walker.walk(maplistener, tree);
-	    //offset = listener.offset;
 	}
 
 	public static ParserRuleContext findSubTree(String funcName) {
@@ -176,13 +171,11 @@ class PTX2Listener extends PTXBaseListener {
 	int mapIndex = 0;
 	HashMap<String, Integer> newmap = new HashMap<String, Integer>();
 	PTX2Listener(PTXParser parser, ParserRuleContext context, int offset) {
-		//super(parser);
 		this.parser = parser;
 		this.context = context;
 		this.offset = offset;
 	}
 	PTX2Listener(PTXParser parser, ParserRuleContext context) {
-		//super(parser);
 		this.parser = parser;
 		this.context = context;
 	}
@@ -198,8 +191,6 @@ class PTX2Listener extends PTXBaseListener {
 					this.context.addChild((PTXParser.IdentifierContext) child);
 				else if(child instanceof PTXParser.OplistContext == true)
 					this.context.addChild((PTXParser.OplistContext) child);
-				//System.out.println(child.getClass());
-				//this.context.addChild(child);
 			}
 		}
 	}
@@ -229,12 +220,9 @@ class PTX2Listener extends PTXBaseListener {
 				ParseTree child = ctx.getChild(i);
 				if (child instanceof PTXParser.InstructionContext == true) {
 					if (this.context instanceof ParserRuleContext == true){
-						System.out.println("This is ParserRuleContext");
 						InsertRuleContext tmp = new InsertRuleContext(this.context);
-						tmp.addChildAt((PTXParser.InstructionContext) child, offset);
+						tmp.addChildAt((PTXParser.InstructionContext) child, offset+i);
 					}
-					
-					//this.context.addChild((PTXParser.InstructionContext) child);
 				}
 			}
 		}
@@ -330,7 +318,6 @@ class PTXfListener extends PTXBaseListener {
 
 class PTX2PTXListener extends PTXBaseListener {
 	Stack<StringBuilder> out = new Stack<StringBuilder>();
-	//PTXParser parser;
 	PTX2PTXListener(){
 		out.push(new StringBuilder(""));
 		//this.parser = parser;
@@ -364,11 +351,9 @@ class PTX2PTXListener extends PTXBaseListener {
 		out.peek().append("\n");
 	}
 	@Override public void enterInstructionList(PTXParser.InstructionListContext ctx){
-		//System.out.println(ctx.getChild(0).getClass());
 		PTXParser.InstructionContext temp = (PTXParser.InstructionContext)ctx.getChild(ctx.getChildCount()-1);
 		ctx.removeLastChild();
 		if(temp instanceof PTXParser.InstructionContext == true){
-			//temp.setParent(ctx);
 			ctx.addChild(temp);
 		}
 		out.peek().append("\n");
