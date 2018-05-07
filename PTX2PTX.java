@@ -58,9 +58,9 @@ public class PTX2PTX {
 	}
 
 	public static void parseInitPTX(String fileName) {
-		String input = "", tmp;
+	    String input = "", tmp;
 		
-		try {
+	    try {
 	    	BufferedReader rd = new BufferedReader(new FileReader(fileName));
 	    	while ((tmp = rd.readLine()) != null) {
 	    	    input += tmp;
@@ -72,35 +72,35 @@ public class PTX2PTX {
 	        System.exit(1);
 	    }
 
-		PTXLexer lexer = new PTXLexer(CharStreams.fromString(input));
+	    PTXLexer lexer = new PTXLexer(CharStreams.fromString(input));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
 	    tree = parser.program();
 	}
 
 	public static void insertFunc(String inputPTX){
-		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
+	    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
 
 	    ParserRuleContext directiveTree = findDirTree();
 	
-		ParseTreeWalker walker = new ParseTreeWalker();
+	    ParseTreeWalker walker = new ParseTreeWalker();
 	    PTX2Listener listener = new PTX2Listener(parser, directiveTree);
 
 	    walker.walk(listener, parser.directive());
 	}
 
 	public static ParserRuleContext findDirTree() {
-		ParseTreeWalker walker = new ParseTreeWalker();
+	    ParseTreeWalker walker = new ParseTreeWalker();
 	    PTXfListener listener = new PTXfListener();
 	    walker.walk(listener, tree);
 
-		return listener.dirtree;
+	    return listener.dirtree;
 	}
 
 	public static void insertInst(String inputPTX, String funcName, int offset) {
-		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
+	    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputPTX));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
                                                                                                                     
@@ -111,12 +111,12 @@ public class PTX2PTX {
 	    walker.walk(listener, parser.instructionList());
 
 	    HashMap<String, Integer> newmap = listener.newmap;
-		PTXfListener maplistener = new PTXfListener(funcName, newmap);
-		walker.walk(maplistener, tree);
+	    PTXfListener maplistener = new PTXfListener(funcName, newmap);
+	    walker.walk(maplistener, tree);
 	}
 
 	public static ParserRuleContext findSubTree(String funcName) {
-		ParseTreeWalker walker = new ParseTreeWalker();
+	    ParseTreeWalker walker = new ParseTreeWalker();
 	    PTXfListener listener = new PTXfListener(funcName);
 	    walker.walk(listener, tree);
 
@@ -125,7 +125,7 @@ public class PTX2PTX {
 	    	System.exit(1);
 	    }
 
-		return listener.subtree;
+	    return listener.subtree;
 	}
 
 	public static void printPTX(ParserRuleContext inputTree, String outputName) throws IOException {
@@ -142,24 +142,23 @@ public class PTX2PTX {
 	}
 
 	public static void modifyOpcode(String inputOpcode, String funcName, int offset){
-		PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputOpcode));
+	    PTXLexer lexer = new PTXLexer(CharStreams.fromString(inputOpcode));
 	    CommonTokenStream tokens = new CommonTokenStream(lexer);
 	    PTXParser parser = new PTXParser(tokens);
 
 	    ParserRuleContext modtree = findModTree(funcName, inputOpcode, offset);
 
-		ParseTreeWalker walker = new ParseTreeWalker();
+	    ParseTreeWalker walker = new ParseTreeWalker();
 	    PTX2Listener listener = new PTX2Listener(parser, modtree);
 		
 	    walker.walk(listener, parser.opcode());
 	}
 
 	public static ParserRuleContext findModTree(String funcName, String inputOpcode, int offset) {
-		ParseTreeWalker walker = new ParseTreeWalker();
+	    ParseTreeWalker walker = new ParseTreeWalker();
 	    PTXfListener listener = new PTXfListener(funcName, inputOpcode, offset);
 	    walker.walk(listener, tree);
-
-		return listener.modtree;
+	    return listener.modtree;
 	}
 }
 
@@ -235,7 +234,6 @@ class PTX2Listener extends PTXBaseListener {
 }
 
 class PTXfListener extends PTXBaseListener {
-	//PTXParser parser;
 	String funcName;
 	HashMap<String, Integer> map;
 	Integer offset;
@@ -249,7 +247,6 @@ class PTXfListener extends PTXBaseListener {
 
   	PTXfListener(){}
 	PTXfListener(String funcName){
-		//this.parser = parser;
 		this.funcName = funcName;
 	}
 	PTXfListener(String funcName, HashMap<String, Integer> map){
@@ -320,7 +317,6 @@ class PTX2PTXListener extends PTXBaseListener {
 	Stack<StringBuilder> out = new Stack<StringBuilder>();
 	PTX2PTXListener(){
 		out.push(new StringBuilder(""));
-		//this.parser = parser;
 	}
 
 	@Override public void exitProgram(PTXParser.ProgramContext ctx){
