@@ -49,8 +49,6 @@ public class PTX2PTX {
 	    }
 
 	    parseInitPTX(args[0]);
-	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc2", 0);
-
 	    insertFunc(".weak .func  (.param .b32 func_retval0) cudaMalloc3(\n.param .b64 cudaMalloc_param_0,\n	.param .b64 cudaMalloc_param_1\n)\n{\n.reg .b32 	%r<2>;\n	st.param.b32	[func_retval0+0], %r1;\n	ret;\n}");
 	    insertInst("BB0_55:\nadd.s32 	%r86, %r1, 193;\nsetp.lt.s32	%rd72, %r86, %r32;", "cudaMalloc", 0);
 	    modifyOpcode("setp .lt .s32 ", "cudaMalloc", 1);
